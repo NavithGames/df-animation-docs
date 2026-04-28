@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Force - Vehicle Animation Guide (for Package2)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.6; display: flex; }
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: 270px; height: 100vh;
+  background: #161b22; border-right: 1px solid #30363d;
+  padding: 20px 16px; overflow-y: auto; z-index: 100;
+}
+.sidebar .logo {
+  font-size: 0.75em; color: #3fb950; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding-bottom: 10px; margin-bottom: 10px;
+  border-bottom: 1px solid #30363d;
+}
+.sidebar h3 {
+  color: #58a6ff; font-size: 0.8em; margin: 14px 0 6px;
+  padding-bottom: 4px; border-bottom: 1px solid #21262d;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.sidebar a {
+  color: #8b949e; text-decoration: none;
+  display: block; padding: 4px 8px;
+  font-size: 0.83em; border-radius: 4px; margin: 1px 0;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar a:hover { color: #e6edf3; background: #21262d; }
+.sidebar a.sub { padding-left: 20px; font-size: 0.78em; color: #6e7681; }
+.sidebar a.sub:hover { color: #c9d1d9; }
+.sidebar a.active { color: #58a6ff; background: #0d1117; }
+
+/* ── Search box ── */
+.search-wrap { padding: 10px 0 6px; }
+#search-input {
+  width: 100%; padding: 6px 10px;
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: 6px; color: #e6edf3; font-size: 0.82em;
+  outline: none;
+}
+#search-input:focus { border-color: #58a6ff; }
+#search-count { font-size: 0.75em; color: #6e7681; padding: 2px 0; }
+
+/* ── Main container ── */
+.container {
+  max-width: 1160px; margin: 0 auto;
+  padding: 24px 32px 60px; margin-left: 290px;
+}
+
+/* ── Headings ── */
+h1 {
+  color: #58a6ff; font-size: 1.9em; margin: 20px 0 6px;
+  border-bottom: 1px solid #30363d; padding-bottom: 10px;
+}
+h2 {
+  color: #79c0ff; font-size: 1.4em; margin: 36px 0 14px;
+  border-bottom: 1px solid #21262d; padding-bottom: 7px;
+}
+h3 { color: #d2a8ff; font-size: 1.1em; margin: 22px 0 8px; }
+h4 { color: #ffa657; font-size: 0.95em; margin: 14px 0 6px; }
+p { margin: 8px 0; color: #c9d1d9; }
+
+/* ── Code ── */
+code {
+  background: #161b22; padding: 2px 6px;
+  border-radius: 4px; font-family: 'Cascadia Code', 'Consolas', monospace;
+  color: #79c0ff; font-size: 0.88em;
+}
+pre {
+  background: #161b22; border: 1px solid #30363d;
+  border-radius: 8px; padding: 16px; overflow-x: auto; margin: 14px 0;
+}
+pre code { padding: 0; background: none; }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
+th {
+  background: #161b22; color: #58a6ff;
+  padding: 9px 12px; text-align: left;
+  border: 1px solid #30363d;
+}
+td { padding: 7px 12px; border: 1px solid #21262d; }
+tr:nth-child(even) { background: #0d1117; }
+tr:nth-child(odd)  { background: #161b22; }
+tr:hover { background: #1c2128; }
+
+/* ── Callout boxes ── */
+.highlight {
+  background: #132032; border-left: 4px solid #58a6ff;
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 8px 8px 0;
+}
+.warning {
+  background: #2d1b00; border-left: 4px solid #d29922;
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 8px 8px 0;
+}
+.success {
+  background: #0d2818; border-left: 4px solid #3fb950;
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 8px 8px 0;
+}
+.info {
+  background: #1a1f2e; border-left: 4px solid #d2a8ff;
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 8px 8px 0;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-block; padding: 2px 9px;
+  border-radius: 10px; font-size: 0.76em; font-weight: 600;
+  margin: 1px 2px; white-space: nowrap;
+}
+.badge-count   { background: #1f6feb; color: #e6edf3; }
+.badge-1p      { background: #1f3a5f; color: #58a6ff; }
+.badge-3p      { background: #2a1f3f; color: #d2a8ff; }
+.badge-self    { background: #1f2d1a; color: #3fb950; }
+.badge-pasout  { background: #2d1b00; color: #ffa657; }
+.badge-drive   { background: #161b22; color: #79c0ff; border: 1px solid #30363d; }
+.badge-fire    { background: #3d1515; color: #f85149; }
+.badge-enter   { background: #1a2d1a; color: #56d364; }
+.badge-weapon  { background: #2d2300; color: #e3b341; }
+.badge-path    { background: #21262d; color: #79c0ff; font-family: monospace; font-size: 0.73em; padding: 2px 7px; }
+
+/* ── Diagram ── */
+.diagram {
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: 8px; padding: 18px; margin: 14px 0;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  white-space: pre; font-size: 0.82em; line-height: 1.5; color: #8b949e;
+  overflow-x: auto;
+}
+
+/* ── Vehicle collapsible sections ── */
+.vehicle-section {
+  border: 1px solid #21262d; border-radius: 8px;
+  margin: 10px 0; overflow: hidden;
+}
+.vehicle-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: #161b22; cursor: pointer;
+  user-select: none; transition: background 0.15s;
+}
+.vehicle-header:hover { background: #1c2128; }
+.vehicle-header .vh-icon {
+  font-size: 1.1em; width: 24px; text-align: center; flex-shrink: 0;
+}
+.vehicle-header .vh-name {
+  font-weight: 600; color: #e6edf3; font-size: 0.95em; flex: 1;
+}
+.vehicle-header .vh-total {
+  font-size: 0.8em; color: #8b949e;
+}
+.vehicle-header .vh-arrow {
+  color: #6e7681; font-size: 0.75em; transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.vehicle-header.open .vh-arrow { transform: rotate(90deg); }
+.vehicle-body {
+  padding: 16px; background: #0d1117;
+  border-top: 1px solid #21262d; display: none;
+}
+.vehicle-body.open { display: block; }
+
+/* ── Anim row grid ── */
+.anim-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;
+}
+@media (max-width: 900px) { .anim-grid { grid-template-columns: 1fr; } }
+.anim-card {
+  background: #161b22; border: 1px solid #21262d;
+  border-radius: 6px; padding: 12px;
+}
+.anim-card .ac-title { color: #79c0ff; font-size: 0.85em; font-weight: 600; margin-bottom: 6px; }
+.anim-card .ac-count { color: #ffa657; font-weight: 700; font-size: 1.1em; }
+.anim-card .ac-detail { color: #8b949e; font-size: 0.82em; margin-top: 4px; }
+
+/* ── Weapon weapon rows ── */
+.weapon-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #161b22; }
+.weapon-row:last-child { border-bottom: none; }
+.weapon-row .wr-name { color: #c9d1d9; font-size: 0.87em; flex: 1; }
+.weapon-row .wr-count { color: #ffa657; font-weight: 600; font-size: 0.87em; width: 40px; text-align: right; }
+
+/* ── Category legend ── */
+.cat-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+
+/* ── Stats row ── */
+.stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0; }
+.stat-box {
+  background: #161b22; border: 1px solid #30363d;
+  border-radius: 8px; padding: 14px 20px; flex: 1; min-width: 140px;
+  text-align: center;
+}
+.stat-box .sb-num { font-size: 1.8em; font-weight: 700; color: #58a6ff; }
+.stat-box .sb-label { font-size: 0.78em; color: #8b949e; margin-top: 2px; }
+
+/* ── Search highlight ── */
+.search-hit { background: #2d2d00; border-radius: 2px; }
+
+/* ── Section group labels ── */
+.group-label {
+  font-size: 0.75em; color: #6e7681; text-transform: uppercase;
+  letter-spacing: 0.1em; margin: 16px 0 6px;
+  padding-bottom: 4px; border-bottom: 1px solid #21262d;
+}
+
+/* ── Naming convention table ── */
+.naming-box {
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: 8px; padding: 20px; margin: 14px 0;
+}
+.naming-box .nb-row { display: flex; gap: 10px; margin: 8px 0; align-items: flex-start; }
+.naming-box .nb-part {
+  background: #1f3a5f; color: #79c0ff; font-family: monospace;
+  font-size: 0.82em; padding: 3px 8px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.naming-box .nb-sep {
+  color: #6e7681; font-size: 1.2em; flex-shrink: 0; margin-top: 2px;
+}
+.naming-box .nb-desc { color: #c9d1d9; font-size: 0.87em; flex: 1; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0d1117; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<div class="sidebar">
+  <div class="logo">Delta Force // Package2</div>
+
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="Search vehicles, anims…" oninput="onSearch()">
+    <div id="search-count"></div>
+  </div>
+
+  <h3>Navigation</h3>
+  <a href="#overview">1. Overview</a>
+  <a href="#categories">2. Animation Categories</a>
+  <a href="#ground">3. Ground Vehicles</a>
+  <a class="sub" href="#atv">ATV (57)</a>
+  <a class="sub" href="#militaryjeep">MilitaryJeep (69)</a>
+  <a class="sub" href="#orv">ORV (42)</a>
+  <a class="sub" href="#lsov">LSOV (33)</a>
+  <a class="sub" href="#tankm1">TankM1 / M1 Abrams</a>
+  <a class="sub" href="#wheeledtank">WheeledTank</a>
+  <a class="sub" href="#valkyrie">Valkyrie (18)</a>
+  <a class="sub" href="#darktide">Darktide Jeep (36)</a>
+  <a class="sub" href="#truck">Truck / PickUp (10)</a>
+  <a class="sub" href="#bosstank">Boss Tank (10)</a>
+  <a class="sub" href="#aav7">AAV7 (4)</a>
+  <a class="sub" href="#lavad">LAVAD (3)</a>
+  <a href="#air">4. Air Vehicles</a>
+  <a class="sub" href="#littlebird">LittleBird (34)</a>
+  <a class="sub" href="#apache">AH-64E Apache</a>
+  <a class="sub" href="#blackhawk">Heli Blackhawk (3)</a>
+  <a class="sub" href="#carrier-heli">Carrier Heli (2)</a>
+  <a class="sub" href="#f35">F35 / F35N (16)</a>
+  <a href="#water">5. Water Vehicles</a>
+  <a class="sub" href="#motorboat">MotorBoat (42)</a>
+  <a class="sub" href="#againstboat">AgainstBoat (13)</a>
+  <a href="#weapons">6. Vehicle Weapon Systems</a>
+  <a class="sub" href="#wpn-mg">Machine Guns</a>
+  <a class="sub" href="#wpn-cannon">Cannons</a>
+  <a class="sub" href="#wpn-tank">Tank Guns</a>
+  <a class="sub" href="#wpn-howitzer">Howitzers</a>
+  <a class="sub" href="#wpn-rocket">Rockets / Missiles</a>
+  <a class="sub" href="#wpn-apc">APC / IFV</a>
+  <a class="sub" href="#wpn-special">Special</a>
+  <a href="#pasout">7. PasOut System</a>
+  <a href="#import">8. Import Notes</a>
+</div>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<div class="container">
+
+<h1>Delta Force — Vehicle Animation Guide</h1>
+<p>Reference for <strong>Henrique</strong> — extracted vehicle animations from Delta Force PAK files, organized for Package2 (<code>F:\UE_DF_Package2</code>).</p>
+<p>Source path: <span class="badge badge-path">ExportedVehicles/DeltaForce/Content/Models/Vehicles/</span> &nbsp; Last updated: April 28, 2026</p>
+
+<!-- ══════════ SECTION 1: Overview ══════════ -->
+<h2 id="overview">1. Overview</h2>
+
+<div class="stats-row">
+  <div class="stat-box"><div class="sb-num">1,327</div><div class="sb-label">Total PSA Animations</div></div>
+  <div class="stat-box"><div class="sb-num">26</div><div class="sb-label">Vehicle Types</div></div>
+  <div class="stat-box"><div class="sb-num">433</div><div class="sb-label">Player Animations</div></div>
+  <div class="stat-box"><div class="sb-num">894</div><div class="sb-label">Vehicle Weapon Anims</div></div>
+</div>
+
+<table>
+  <tr><th>Category</th><th>Count</th><th>Description</th></tr>
+  <tr><td>Player on Vehicle</td><td><span class="badge badge-count">433</span></td><td>Character animations while seated/riding — drive, lean-out shoot, idle, enter/exit</td></tr>
+  <tr><td>Vehicle Weapon Self</td><td><span class="badge badge-count">894</span></td><td>Turret rotation, barrel recoil, missile deployment — the vehicle's own mechanical motion</td></tr>
+  <tr><td>Source Format</td><td><span class="badge badge-drive">PSA</span></td><td>Unreal Engine binary animation, convertible to <code>.ueanim</code> via UEFormat pipeline</td></tr>
+  <tr><td>Target Format</td><td><span class="badge badge-drive">.ueanim</span></td><td>Direct UE5 import using UEFormat plugin — no FBX intermediate required</td></tr>
+</table>
+
+<div class="highlight">
+  <strong>Key architecture:</strong> Vehicle player animations use the same 1P (83 bones) and 3P (113 bones) character skeletons as the infantry system. Vehicle-self animations use vehicle-specific skeletons generated during PSK import.
+</div>
+
+<!-- ══════════ SECTION 2: Categories ══════════ -->
+<h2 id="categories">2. Animation Categories Explained</h2>
+
+<div class="cat-legend">
+  <span class="badge badge-pasout">PasOut — Lean Shoot</span>
+  <span class="badge badge-drive">Drive / Steer</span>
+  <span class="badge badge-fire">Fire / Weapon</span>
+  <span class="badge badge-enter">Enter / Exit</span>
+  <span class="badge badge-1p">1P</span>
+  <span class="badge badge-3p">3P</span>
+  <span class="badge badge-self">Vehicle Self</span>
+  <span class="badge badge-weapon">Weapon Self</span>
+</div>
+
+<table>
+  <tr><th>Category</th><th>Description</th><th>Example Animations</th></tr>
+  <tr>
+    <td><span class="badge badge-pasout">PasOut</span><br>Lean-out Shoot</td>
+    <td>Passenger leans out of the vehicle to shoot. Full 8-directional aim space (F / B / L / R / FL / FR / BL / BR) with Up/Down elevation variants per direction. This is the <em>"Drive Shooting"</em> system, designed to feed an AimOffset or BlendSpace.</td>
+    <td><code>ATV_Player_3P_PasOutB_F</code><br><code>PasOutB_Fdown</code>, <code>PasOutB_Fup</code></td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-drive">Drive</span><br>Steering / Pose</td>
+    <td>Character driving pose animations — left/right turns, center/idle pose, sprint, reverse, terrain reaction (uphill, downhill, fall).</td>
+    <td><code>ORV_Player_M_3P_DriveCenter</code><br><code>DriveLeft</code>, <code>DriveRight</code>, <code>DriveUp</code></td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-fire">Fire / Shoot</span></td>
+    <td>Turret or mounted weapon firing animations — both player-operated and vehicle-self mechanical.</td>
+    <td><code>carrier_wheel_remoteturret_Fire_Montage</code><br><code>TankM1_Player_1P_Fire</code></td>
+  </tr>
+  <tr>
+    <td><code>Idle</code></td>
+    <td>Base idle pose while seated in the vehicle. Usually a looping hold pose.</td>
+    <td><code>ATV_Player_1P_Idle</code><br><code>ORV_Player_M_3P_DriveIdle</code></td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-enter">Enter / Exit</span></td>
+    <td>Transition animations for getting in and out of vehicles. Includes driver and per-seat passenger variants.</td>
+    <td><code>PickUp_M_3P_DriveGetIn</code><br><code>DriverGetOff</code>, <code>PasGetInFR</code></td>
+  </tr>
+  <tr>
+    <td><code>Hit / Damage</code></td>
+    <td>Reaction animations played when the vehicle takes damage or the player is hit while inside.</td>
+    <td><code>ATV_3P_idle_Drive_HIT</code><br><code>PasHitBL</code>, <code>FALL</code></td>
+  </tr>
+  <tr>
+    <td><code>Reload</code></td>
+    <td>Magazine/clip change for vehicle-mounted weapons. Same structure as infantry reload.</td>
+    <td><code>TankM1_Player_1P_ChangeClip</code><br><code>TankM1_Player_3P_ChangeClip</code></td>
+  </tr>
+  <tr>
+    <td><code>Additive / Pose</code></td>
+    <td>Additive-layer reference poses and blend targets. Common in aircraft where most motion is physics-driven.</td>
+    <td><code>F35N</code> additive poses<br><code>LAVAD</code> poses</td>
+  </tr>
+  <tr>
+    <td><code>Open / Close</code></td>
+    <td>Vehicle hatch, door, or canopy open/close animations.</td>
+    <td><code>AAV7_open</code>, <code>AAV7_ciose</code><br><code>F35N_canopy</code></td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-self">Vehicle Self</span></td>
+    <td>The vehicle's own mechanical animations — turret yaw, barrel elevation, recoil, suspension, wheels. Runs on the vehicle skeleton, independent of the character.</td>
+    <td>Various weapon recoil/idle on vehicle skeletons</td>
+  </tr>
+</table>
+
+<!-- ══════════ SECTION 3: Ground Vehicles ══════════ -->
+<h2 id="ground">3. Ground Vehicles</h2>
+
+<!-- ATV -->
+<div class="vehicle-section" id="atv">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚙</span>
+    <span class="vh-name">ATV — All-Terrain Vehicle</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">57 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">30</div>
+        <div class="ac-detail">3P only. Full 8-direction aim with elevation for <strong>Back (B)</strong>, <strong>Back-Left (BL)</strong>, and <strong>Back-Right (BR)</strong> passenger seats. Each seat has level / up / down elevation variants per direction.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">22</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 4 anims — drive center/left/right + idle.<br><span class="badge badge-3p">3P</span> 18 anims — steering directions, sprint, reverse, uphill/downhill terrain reactions.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">5</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 1 anim. &nbsp; <span class="badge badge-3p">3P</span> 4 anims (driver + passenger seat variants).</div>
+      </div>
+    </div>
+    <p><strong>No vehicle-self animations</strong> for ATV — pure mechanical vehicle with no articulated weapon systems.</p>
+  </div>
+</div>
+
+<!-- MilitaryJeep -->
+<div class="vehicle-section" id="militaryjeep">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚗</span>
+    <span class="vh-name">MilitaryJeep</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">69 total (58 player + 11 weapon)</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">48</div>
+        <div class="ac-detail">3P only. Full 8-direction aim with elevation for multiple passenger seats. Largest lean-shoot set of all ground vehicles.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">18</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 5 anims. &nbsp; <span class="badge badge-3p">3P</span> 13 anims.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">3</div>
+        <div class="ac-detail">Driver + passenger seat idle poses.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon: MilitaryJeep_FN_Minimi — Mounted Minigun</h4>
+    <div class="weapon-row"><span class="wr-name">MilitaryJeep_FN_Minimi (total)</span><span class="wr-count badge badge-count">43</span></div>
+    <p style="font-size:0.85em;color:#8b949e;margin-top:4px;">Mounted minigun — fire, idle animations in both 1P and 3P perspectives. Includes sustained fire, spin-up, and ADS poses.</p>
+  </div>
+</div>
+
+<!-- ORV -->
+<div class="vehicle-section" id="orv">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚙</span>
+    <span class="vh-name">ORV — Off-Road Vehicle</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">42 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">24</div>
+        <div class="ac-detail">3P. Two rear seats — <strong>BL</strong> and <strong>BR</strong>. Each has full 8-dir + elevation: F / Fdown / Fup / B / Bdown / Bup / L / Ldown / R / Rdown / Rup (11 per seat = 22, plus 2 shared).</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">9</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 4 anims. &nbsp; <span class="badge badge-3p">3P</span> 5 anims — center, left, right, sprint, idle.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Hit / Damage</div>
+        <div class="ac-count">3</div>
+        <div class="ac-detail"><code>DriveHit</code> (driver), <code>PasHitBL</code>, <code>PasHitBR</code>.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle + Other</div>
+        <div class="ac-count">6</div>
+        <div class="ac-detail">4 idles (DriveIdle + BL/BR PasIdle) + 2 FR_Idle misc.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LSOV -->
+<div class="vehicle-section" id="lsov">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚙</span>
+    <span class="vh-name">LSOV — Light Strike Off-road Vehicle</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">33 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">30</div>
+        <div class="ac-detail">Most anim-heavy driving set. Both 1P and 3P. Extensive steering directions, terrain climb/descent, sprint, reverse, and cornering lean variants.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Hit / Damage</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail">Impact reactions for driver.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Driver idle hold pose.</div>
+      </div>
+    </div>
+    <div class="info"><strong>Note:</strong> LSOV has no PasOut animations — it is a 2-seat configuration focused on driving rather than passenger shooting.</div>
+  </div>
+</div>
+
+<!-- TankM1 -->
+<div class="vehicle-section" id="tankm1">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🪖</span>
+    <span class="vh-name">TankM1 — M1 Abrams Main Battle Tank</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">19 player + weapon anims + vehicle self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-fire">Fire / Main Gun</span></div>
+        <div class="ac-count">6</div>
+        <div class="ac-detail">Main gun fire animations: 3 for 1P, 3 for 3P. High-impact recoil recovery cycle.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Reload</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail"><code>ChangeClip</code> — 2 for 1P, 2 for 3P. Manual loading animation sequence.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">5</div>
+        <div class="ac-detail">Gunner and commander idle poses across perspectives.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Pose / Additive</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail">Turret up/down reference poses for additive blending.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">tank_M1_Bar_02</span><span class="wr-count">13</span></div>
+    <div class="weapon-row"><span class="wr-name">tank_M1_Bar_03</span><span class="wr-count">12</span></div>
+    <div class="weapon-row"><span class="wr-name">tank_M1_MainGun01_Coaxial</span><span class="wr-count">4</span></div>
+    <div class="weapon-row"><span class="wr-name">tank_M1_MainGun02_Coaxial</span><span class="wr-count">4</span></div>
+    <div class="weapon-row"><span class="wr-name">tank_M1_MainGun03_Coaxial</span><span class="wr-count">4</span></div>
+    <p style="font-size:0.84em;color:#8b949e;margin-top:8px;">Coaxial machine gun runs on its own skeleton track alongside the main barrel animations.</p>
+  </div>
+</div>
+
+<!-- WheeledTank -->
+<div class="vehicle-section" id="wheeledtank">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🪖</span>
+    <span class="vh-name">WheeledTank — Tank Destroyer</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">9 player + extensive weapon self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <p>Minimal player anims — this vehicle is mostly driven from a closed position. The bulk of animation data is the vehicle's own weapon systems.</p>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">WheeledTank_Bar</span><span class="wr-count">16</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank_Bar_02</span><span class="wr-count">16</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank01_Coaxial</span><span class="wr-count">4</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank02_Coaxial</span><span class="wr-count">4</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank_Guided_Missile</span><span class="wr-count">9</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank_Missile01</span><span class="wr-count">4</span></div>
+    <div class="weapon-row"><span class="wr-name">WheeledTank_Missile02</span><span class="wr-count">4</span></div>
+    <div class="warning"><strong>Note:</strong> WheeledTank uses both barrel-recoil style animations (Bar) and full guided missile deployment animations (Guided_Missile) which include launcher arm extension.</div>
+  </div>
+</div>
+
+<!-- Valkyrie -->
+<div class="vehicle-section" id="valkyrie">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚗</span>
+    <span class="vh-name">Valkyrie</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">18 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">12</div>
+        <div class="ac-detail">3P, <strong>FR seat</strong> (Front-Right passenger). Full 8-direction aim with elevation — gives the front passenger a complete shoot-out coverage arc.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Hit / Damage</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 3 PasHit reactions. &nbsp; <span class="badge badge-3p">3P</span> 1 PasHit.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail"><code>DriverIdle</code> + <code>Idle_Pose</code> reference.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Darktide Jeep -->
+<div class="vehicle-section" id="darktide">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚗</span>
+    <span class="vh-name">carrier_wheel_darktide_jeep_001</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">36 total</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">11</div>
+        <div class="ac-detail">Both 1P and 3P driving poses including turn variants.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-enter">Enter / Exit</span></div>
+        <div class="ac-count">7</div>
+        <div class="ac-detail">GetIn / GetOff transitions for driver and multiple passenger seats.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Hit / Damage</div>
+        <div class="ac-count">6</div>
+        <div class="ac-detail">Impact reactions for driver and passengers.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Other / Misc</div>
+        <div class="ac-count">12</div>
+        <div class="ac-detail">Includes VehicleSelf mechanical animations (suspension, remote turret).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Truck / PickUp -->
+<div class="vehicle-section" id="truck">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚛</span>
+    <span class="vh-name">Truck / PickUp</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">10 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-enter">Enter / Exit</span></div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail"><code>DriveGetIn</code>, <code>DriverGetOff</code>, <code>PasGetInFR</code>, <code>PasGetOffFR</code>.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive</span></div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail"><code>1P Drive</code> + <code>DriverTurn</code>.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Death (AI)</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail"><code>AI_DriverDeath</code>, <code>AI_PasDeathFR</code> — AI NPC death in seat.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Window Break</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail"><code>GlassDownL</code>, <code>GlassDownR</code> — window shattering reactions.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Boss Tank -->
+<div class="vehicle-section" id="bosstank">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🪖</span>
+    <span class="vh-name">carrier_wheel_bosstank_001</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">10 anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-fire">Fire</span></div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail">Boss tank main weapon fire cycle.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle + Other</div>
+        <div class="ac-count">8</div>
+        <div class="ac-detail">1 idle loop + 7 mechanical/special state anims. AI boss behavior driven.</div>
+      </div>
+    </div>
+    <div class="info">This is an AI-controlled boss vehicle, not player-drivable. All animations are vehicle-self.</div>
+  </div>
+</div>
+
+<!-- AAV7 -->
+<div class="vehicle-section" id="aav7">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚢</span>
+    <span class="vh-name">AAV7 — Amphibious Assault Vehicle</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">4 player anims + weapon self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Open / Close</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail"><code>AAV7_open</code>, <code>AAV7_ciose</code> — rear ramp/hatch operation animations.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail">Crew idle poses.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">AAV7_Bar_01</span><span class="wr-count">11</span></div>
+    <div class="weapon-row"><span class="wr-name">AAV7_Bar_02</span><span class="wr-count">9</span></div>
+    <div class="warning"><strong>Typo in source:</strong> <code>AAV7_ciose</code> — the 'l' is a lowercase 'i'. Match this exactly in asset lookups.</div>
+  </div>
+</div>
+
+<!-- LAVAD -->
+<div class="vehicle-section" id="lavad">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🪖</span>
+    <span class="vh-name">LAVAD — Light Armored Vehicle Air Defense</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">3 player anims + weapon self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Additive / Pose</div>
+        <div class="ac-count">3</div>
+        <div class="ac-detail">3P operator poses — additive reference frames for turret operator blending.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">LAVAD_Bar_02</span><span class="wr-count">17</span></div>
+    <div class="weapon-row"><span class="wr-name">LAVAD_Barrel</span><span class="wr-count">23</span></div>
+    <div class="weapon-row"><span class="wr-name">LAVAD_Rocket</span><span class="wr-count">12</span></div>
+    <p style="font-size:0.84em;color:#8b949e;margin-top:8px;">LAVAD is an anti-air platform — the weapon self anims include missile pod elevation, rotation, and launch sequences.</p>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 4: Air Vehicles ══════════ -->
+<h2 id="air">4. Air Vehicles</h2>
+
+<!-- LittleBird -->
+<div class="vehicle-section" id="littlebird">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚁</span>
+    <span class="vh-name">LittleBird — Light Scout Helicopter</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">34 player anims + weapon self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Other / Flight</div>
+        <div class="ac-count">30</div>
+        <div class="ac-detail">Various flight control and passenger pose animations. Includes side-seated gunner positions (troops sit on skids).</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail">Pilot and crew idle holds during flight.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">LittleBird_Weapon01 (rocket pod)</span><span class="wr-count">12</span></div>
+    <div class="weapon-row"><span class="wr-name">LittleBird_weapon03 (minigun)</span><span class="wr-count">12</span></div>
+    <div class="weapon-row"><span class="wr-name">LittleBird_Scanning</span><span class="wr-count">2</span></div>
+  </div>
+</div>
+
+<!-- Apache -->
+<div class="vehicle-section" id="apache">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚁</span>
+    <span class="vh-name">AH-64E — Apache Attack Helicopter</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">1 player anim + weapon self</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Idle Additive</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Single additive idle reference — the Apache cockpit view is mostly camera-controlled.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">AH_64E_Machine (chain gun)</span><span class="wr-count">11</span></div>
+    <div class="weapon-row"><span class="wr-name">AH_64E_Rocket</span><span class="wr-count">12</span></div>
+    <div class="weapon-row"><span class="wr-name">AH_64E_Rocket_02</span><span class="wr-count">7</span></div>
+    <div class="info">The Apache's primary animation complexity is in its weapon systems rather than player animations — chain gun traverse, rocket pod deployment, and launch sequences.</div>
+  </div>
+</div>
+
+<!-- Blackhawk -->
+<div class="vehicle-section" id="blackhawk">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚁</span>
+    <span class="vh-name">Heli_Blackhawk2035</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">3 anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail">Pilot idle and crew idle holds.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Drive</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Pilot flight-control pose.</div>
+      </div>
+    </div>
+    <p style="font-size:0.84em;color:#8b949e;">The Blackhawk's complexity is in the vehicle mesh animation (rotor, tail) handled by the vehicle's own blueprint, not PSA files.</p>
+  </div>
+</div>
+
+<!-- Carrier Heli -->
+<div class="vehicle-section" id="carrier-heli">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚁</span>
+    <span class="vh-name">carrier_heli_Blackhawk</span>
+    <span class="badge badge-self">VehicleSelf</span>
+    <span class="vh-total">2 anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">Other</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Vehicle-self mechanical animation.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Vehicle idle state.</div>
+      </div>
+    </div>
+    <div class="info">Carrier variant — likely the AI or scripted helicopter used for troop insertion. Minimal player interaction.</div>
+  </div>
+</div>
+
+<!-- F35 -->
+<div class="vehicle-section" id="f35">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">✈️</span>
+    <span class="vh-name">F35 / F35N — Fighter Jet</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="badge badge-weapon">Weapon</span>
+    <span class="vh-total">16 anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title">F35 — Drive</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">3P pilot in-cockpit drive pose.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">F35N — Additive / Pose</div>
+        <div class="ac-count">9</div>
+        <div class="ac-detail">Multiple additive reference frames for pilot G-force reactions and cockpit lean.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">F35N — Idle</div>
+        <div class="ac-count">2</div>
+        <div class="ac-detail">Pilot idle holds in cockpit.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">F35N — Open / Drive / Other</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail">1 canopy open, 1 drive pose, 2 misc state anims.</div>
+      </div>
+    </div>
+    <h4>Vehicle Weapon Self Animations</h4>
+    <div class="weapon-row"><span class="wr-name">F35N_Rocket (missile bay)</span><span class="wr-count">10</span></div>
+    <div class="weapon-row"><span class="wr-name">F35N_Weapon (gun strafing)</span><span class="wr-count">4</span></div>
+    <div class="warning"><strong>F35N vs F35:</strong> F35N is the stealth variant with more mechanical animations (internal weapon bay, canopy). F35 only has the basic pilot drive pose.</div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 5: Water Vehicles ══════════ -->
+<h2 id="water">5. Water Vehicles</h2>
+
+<!-- MotorBoat -->
+<div class="vehicle-section" id="motorboat">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚤</span>
+    <span class="vh-name">MotorBoat</span>
+    <span class="badge badge-1p">1P</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">42 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">21</div>
+        <div class="ac-detail">3P. Back passenger seat. Full directional aim with elevation. Includes <code>UP</code> variant for shooting at air targets.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-drive">Drive / Steer</span></div>
+        <div class="ac-count">16</div>
+        <div class="ac-detail"><span class="badge badge-1p">1P</span> 1 anim. &nbsp; <span class="badge badge-3p">3P</span> 15 anims — includes wave-reaction terrain variants: <code>UP</code>, <code>Down</code>, <code>FALL</code> for hitting waves.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">4</div>
+        <div class="ac-detail">Driver and passenger idle while stationary on water.</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Hit</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Impact reaction.</div>
+      </div>
+    </div>
+    <div class="highlight"><strong>Wave Physics:</strong> The Drive set includes <code>DriveUp</code>, <code>DriveDown</code>, and <code>DriveFALL</code> which are blended based on the boat's pitch angle — essential for making the ride feel physical.</div>
+  </div>
+</div>
+
+<!-- AgainstBoat -->
+<div class="vehicle-section" id="againstboat">
+  <div class="vehicle-header" onclick="toggle(this)">
+    <span class="vh-icon">🚤</span>
+    <span class="vh-name">AgainstBoat — Combat Patrol Boat</span>
+    <span class="badge badge-3p">3P</span>
+    <span class="vh-total">13 player anims</span>
+    <span class="vh-arrow">▶</span>
+  </div>
+  <div class="vehicle-body">
+    <div class="anim-grid">
+      <div class="anim-card">
+        <div class="ac-title"><span class="badge badge-pasout">PasOut — Lean Shoot</span></div>
+        <div class="ac-count">12</div>
+        <div class="ac-detail">3P. 4-directional aim with elevation. Full set: <code>F / Fdown / Fup / B / Bdown / Bup / L / Ldown / Lup / R / Rdown / Rup</code> (12 poses).</div>
+      </div>
+      <div class="anim-card">
+        <div class="ac-title">Idle</div>
+        <div class="ac-count">1</div>
+        <div class="ac-detail">Gunner idle hold on the bow.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 6: Vehicle Weapon Systems ══════════ -->
+<h2 id="weapons">6. Vehicle Weapon Systems (894 total)</h2>
+
+<p>These animations play on the vehicle's own skeleton — they are the mechanical motion of the weapon hardware itself. They run in parallel with player animations and are driven by the vehicle's Animation Blueprint.</p>
+
+<h3 id="wpn-mg">Machine Guns (Mounted)</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>Heavy_Machine_Gun</td><td><span class="badge badge-count">139</span></td><td>Largest single set. Mounted HMG used across multiple vehicle types — traverse, elevation, fire, idle, reload.</td></tr>
+  <tr><td>MilitaryJeep_FN_Minimi</td><td><span class="badge badge-count">43</span></td><td>Jeep-specific minigun — spin-up, fire, spin-down, 1P+3P.</td></tr>
+  <tr><td>HMG_M134_049 (Minigun)</td><td><span class="badge badge-count">16</span></td><td>6-barrel rotary — includes spool animations.</td></tr>
+  <tr><td>LightMachineGun</td><td><span class="badge badge-count">15</span></td><td>Lighter vehicle-mounted LMG.</td></tr>
+  <tr><td>M2HB_Humvee</td><td><span class="badge badge-count">2</span></td><td>Classic .50cal on humvee-type vehicle.</td></tr>
+  <tr><td>AAGUN (Anti-Air Gun)</td><td><span class="badge badge-count">26</span></td><td>Dual-barrel AA gun — elevation, traverse, fire cycle.</td></tr>
+</table>
+
+<h3 id="wpn-cannon">Cannons</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>30mmCannon</td><td><span class="badge badge-count">18</span></td><td>IFV autocannon — cyclic fire with recoil.</td></tr>
+  <tr><td>50mmCannon</td><td><span class="badge badge-count">13</span></td><td>Medium caliber — fire and idle.</td></tr>
+  <tr><td>20mmaagun</td><td><span class="badge badge-count">18</span></td><td>20mm anti-air capable cannon.</td></tr>
+  <tr><td>20mmshotgun</td><td><span class="badge badge-count">18</span></td><td>20mm burst-fire configuration.</td></tr>
+</table>
+
+<h3 id="wpn-tank">Tank Main Guns</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>tank_M1_Bar_02</td><td><span class="badge badge-count">13</span></td><td>M1 Abrams barrel variant — fire, recoil, return-to-battery.</td></tr>
+  <tr><td>tank_M1_Bar_03</td><td><span class="badge badge-count">12</span></td><td>M1 alternate barrel config.</td></tr>
+  <tr><td>tank_M1_MainGun01/02/03_Coaxial</td><td><span class="badge badge-count">12</span></td><td>Coaxial MG running alongside main gun.</td></tr>
+  <tr><td>Tank_GTQ35_Bar_01</td><td><span class="badge badge-count">11</span></td><td>GTQ35 tank main barrel.</td></tr>
+  <tr><td>Tank_GTQ35_Coaxial_01</td><td><span class="badge badge-count">10</span></td><td>GTQ35 coaxial.</td></tr>
+  <tr><td>Coaxial_MainGun01</td><td><span class="badge badge-count">12</span></td><td>Generic coaxial config 1.</td></tr>
+  <tr><td>Coaxial_MainGun02</td><td><span class="badge badge-count">4</span></td><td>Generic coaxial config 2.</td></tr>
+</table>
+
+<h3 id="wpn-howitzer">Howitzers</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>40mmHowitzer</td><td><span class="badge badge-count">22</span></td><td>Primary howitzer — includes full load/fire/recoil cycle.</td></tr>
+  <tr><td>40mmHowitzer02</td><td><span class="badge badge-count">13</span></td><td>Variant configuration.</td></tr>
+  <tr><td>40mmweaponstation</td><td><span class="badge badge-count">11</span></td><td>Remote weapon station mount.</td></tr>
+</table>
+
+<h3 id="wpn-rocket">Rockets / Missiles</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>RocketLauncher</td><td><span class="badge badge-count">11</span></td><td>Generic rocket pod.</td></tr>
+  <tr><td>RocketLauncher02</td><td><span class="badge badge-count">5</span></td><td>Variant pod.</td></tr>
+  <tr><td>LAVAD_Rocket</td><td><span class="badge badge-count">12</span></td><td>Air-defense missile pod on LAVAD.</td></tr>
+  <tr><td>F35N_Rocket</td><td><span class="badge badge-count">10</span></td><td>Internal weapons bay missile.</td></tr>
+  <tr><td>Module_BarrageRocket</td><td><span class="badge badge-count">16</span></td><td>Multi-rocket barrage module.</td></tr>
+  <tr><td>AH_64E_Rocket</td><td><span class="badge badge-count">12</span></td><td>Apache Hydra rocket pod.</td></tr>
+  <tr><td>AH_64E_Rocket_02</td><td><span class="badge badge-count">7</span></td><td>Apache alternate rocket config.</td></tr>
+  <tr><td>WheeledTank_Guided_Missile</td><td><span class="badge badge-count">9</span></td><td>ATGM — launcher arm extension + launch.</td></tr>
+  <tr><td>TOWATMissile</td><td><span class="badge badge-count">2</span></td><td>TOW anti-tank missile launcher.</td></tr>
+  <tr><td>TVMissileStation</td><td><span class="badge badge-count">13</span></td><td>TV-guided missile station — camera + launch.</td></tr>
+</table>
+
+<h3 id="wpn-apc">APC / IFV Weapons</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>LAV25_Bar_02</td><td><span class="badge badge-count">24</span></td><td>LAV-25 25mm cannon barrel — fire + traverse.</td></tr>
+  <tr><td>LAV25_Bar_03</td><td><span class="badge badge-count">24</span></td><td>LAV-25 alternate barrel.</td></tr>
+  <tr><td>LAV25_Barrel_Base</td><td><span class="badge badge-count">24</span></td><td>LAV-25 base turret rotation.</td></tr>
+  <tr><td>AAV7_Bar_01</td><td><span class="badge badge-count">11</span></td><td>AAV7 primary weapon.</td></tr>
+  <tr><td>AAV7_Bar_02</td><td><span class="badge badge-count">9</span></td><td>AAV7 secondary weapon.</td></tr>
+  <tr><td>WheeledTank_Bar</td><td><span class="badge badge-count">16</span></td><td>Wheeled tank main gun.</td></tr>
+  <tr><td>WheeledTank_Bar_02</td><td><span class="badge badge-count">16</span></td><td>Wheeled tank alt gun.</td></tr>
+  <tr><td>Carrier_Weapon_Turret01</td><td><span class="badge badge-count">15</span></td><td>Generic carrier remote turret.</td></tr>
+  <tr><td>DualWeaponStation</td><td><span class="badge badge-count">27</span></td><td>Dual-arm weapon station — each arm independently animated.</td></tr>
+</table>
+
+<h3 id="wpn-special">Special / Unique</h3>
+<table>
+  <tr><th>Weapon System</th><th>Count</th><th>Notes</th></tr>
+  <tr><td>Shore_Main_Gun</td><td><span class="badge badge-count">14</span></td><td>Coastal defense gun — stationary emplacement, not mobile vehicle.</td></tr>
+  <tr><td>ShrapnelLauncher</td><td><span class="badge badge-count">~26 total</span></td><td>ShrapnelLauncher, /02, /05 variants.</td></tr>
+  <tr><td>Rebirthbeacon / 02 / 03</td><td><span class="badge badge-count">41 total</span></td><td>Respawn beacon deployment animations — arm extension, anchor, power-up sequence.</td></tr>
+  <tr><td>LittleBird_Weapon01</td><td><span class="badge badge-count">12</span></td><td>Rocket pod on LittleBird skids.</td></tr>
+  <tr><td>LittleBird_weapon03</td><td><span class="badge badge-count">12</span></td><td>Minigun on LittleBird skids.</td></tr>
+  <tr><td>Tank_GTQ35_Drone</td><td><span class="badge badge-count">2</span></td><td>Drone launch mechanism on GTQ35 tank.</td></tr>
+  <tr><td>Module_30mm</td><td><span class="badge badge-count">7</span></td><td>Modular 30mm weapon station.</td></tr>
+</table>
+
+<!-- ══════════ SECTION 7: PasOut System ══════════ -->
+<h2 id="pasout">7. PasOut System — Drive Shooting Detail</h2>
+
+<div class="highlight">
+  <strong>PasOut</strong> is Delta Force's vehicle "lean-out shooting" system. A passenger hangs out of the vehicle and maintains a full 3D aim space while the vehicle is moving. The naming convention encodes all the information needed to build a BlendSpace or AimOffset.
+</div>
+
+<h3>Naming Convention</h3>
+
+<div class="naming-box">
+  <p style="font-size:0.82em;color:#8b949e;margin-bottom:12px;">Full pattern:</p>
+  <div class="nb-row">
+    <span class="nb-part">{Vehicle}</span>
+    <span class="nb-sep">_</span>
+    <span class="nb-desc">Vehicle identifier — <code>ATV</code>, <code>ORV</code>, <code>MotorBoat</code>, etc.</span>
+  </div>
+  <div class="nb-row">
+    <span class="nb-part">Player</span>
+    <span class="nb-sep">_</span>
+    <span class="nb-desc">Always "Player" — distinguishes from vehicle-self anims.</span>
+  </div>
+  <div class="nb-row">
+    <span class="nb-part">{Perspective}</span>
+    <span class="nb-sep">_</span>
+    <span class="nb-desc"><code>1P</code> or <code>3P</code>. PasOut is always 3P (you never see yourself leaning out in first person).</span>
+  </div>
+  <div class="nb-row">
+    <span class="nb-part">PasOut{Seat}</span>
+    <span class="nb-sep">_</span>
+    <span class="nb-desc">Seat position — <strong>B</strong> (Back), <strong>BL</strong> (Back-Left), <strong>BR</strong> (Back-Right), <strong>FR</strong> (Front-Right).</span>
+  </div>
+  <div class="nb-row">
+    <span class="nb-part">{Direction}{Elevation}</span>
+    <span class="nb-sep"></span>
+    <span class="nb-desc">Aim direction + optional elevation suffix.</span>
+  </div>
+</div>
+
+<h3>Direction Tokens</h3>
+<table>
+  <tr><th>Token</th><th>Meaning</th><th>Relative To</th></tr>
+  <tr><td><code>F</code></td><td>Forward</td><td>Vehicle forward direction</td></tr>
+  <tr><td><code>B</code></td><td>Backward</td><td>Vehicle rear</td></tr>
+  <tr><td><code>L</code></td><td>Left</td><td>Vehicle left side</td></tr>
+  <tr><td><code>R</code></td><td>Right</td><td>Vehicle right side</td></tr>
+  <tr><td><code>FL</code></td><td>Forward-Left diagonal</td><td>45° front-left</td></tr>
+  <tr><td><code>FR</code></td><td>Forward-Right diagonal</td><td>45° front-right</td></tr>
+  <tr><td><code>BL</code></td><td>Backward-Left diagonal</td><td>45° rear-left</td></tr>
+  <tr><td><code>BR</code></td><td>Backward-Right diagonal</td><td>45° rear-right</td></tr>
+</table>
+
+<h3>Elevation Suffix</h3>
+<table>
+  <tr><th>Suffix</th><th>Meaning</th></tr>
+  <tr><td>(none)</td><td>Level — horizontal aim</td></tr>
+  <tr><td><code>up</code></td><td>Elevated aim — shooting upward (anti-air, hilltop)</td></tr>
+  <tr><td><code>down</code></td><td>Depressed aim — shooting downward (valley targets)</td></tr>
+</table>
+
+<h3>Full Example Breakdown</h3>
+<div class="diagram">ATV_Player_3P_PasOutB_Fdown
+│   │      │  │       │ └── Elevation: looking DOWN
+│   │      │  │       └──── Direction: Forward
+│   │      │  └──────────── Seat: B (Back passenger)
+│   │      └─────────────── Perspective: 3P
+│   └────────────────────── Always "Player"
+└────────────────────────── Vehicle: ATV</div>
+
+<h3>BlendSpace Usage</h3>
+<p>These animations form a complete <strong>2D AimOffset grid</strong>:</p>
+<div class="diagram">         Fup
+          │
+  BLup ── F ── FRup
+   │      │      │
+BL ─────CENTER──── FR   ← horizontal aim (level)
+   │      │      │
+  BLdn ── B ── BRdn
+          │
+         Bdown</div>
+
+<p>In UE5, set up a <code>BlendSpace2D</code> with <strong>Yaw</strong> on the X axis (−180 to +180) and <strong>Pitch</strong> on the Y axis (−45 to +45). Each PasOut animation maps to a grid point.</p>
+
+<!-- ══════════ SECTION 8: Import Notes ══════════ -->
+<h2 id="import">8. Import Notes for Package2</h2>
+
+<table>
+  <tr><th>Step</th><th>Detail</th></tr>
+  <tr>
+    <td>Source Files</td>
+    <td><span class="badge badge-path">ExportedVehicles/DeltaForce/Content/Models/Vehicles/</span> — PSA files organized by vehicle subfolder.</td>
+  </tr>
+  <tr>
+    <td>Conversion</td>
+    <td>Use <code>DFPakExplorer export-asset-ueformat</code> to convert <code>.psa</code> → <code>.ueanim</code>. No FBX intermediate needed.</td>
+  </tr>
+  <tr>
+    <td>UE5 Import</td>
+    <td>UEFormat plugin handles <code>.ueanim</code> directly. Bone auto-matching selects the correct skeleton on import.</td>
+  </tr>
+  <tr>
+    <td>Player Anim Skeletons</td>
+    <td><span class="badge badge-1p">1P anims</span> → <code>C_Test_001_1P_Skeleton</code> (83 bones, Mixamo names). <span class="badge badge-3p">3P anims</span> → <code>C_Test_001_3P_Skeleton</code> (113 bones, Mixamo names).</td>
+  </tr>
+  <tr>
+    <td>Vehicle-Self Skeletons</td>
+    <td>Each vehicle type has its own skeleton generated when the vehicle PSK was imported. Weapon-self animations reference the vehicle mesh skeleton, not the character skeleton.</td>
+  </tr>
+  <tr>
+    <td>Skeleton Assignment</td>
+    <td>Import with <code>skeleton=None</code> first (auto-generate), then reassign via UE5 Python after import. Never share skeletons across vehicle types during batch import — the FBX importer can corrupt shared skeletons.</td>
+  </tr>
+  <tr>
+    <td>Naming in UE5</td>
+    <td>Keep the original PSA filename as the AnimSequence asset name — the naming convention is load-bearing (PasOut direction tokens must be readable by the AnimBP).</td>
+  </tr>
+</table>
+
+<div class="success">
+  <strong>Pipeline verified:</strong> The UEFormat direct import pipeline (PSA → .ueanim → UE5) was confirmed working for vehicle animations. 158/158 test assets imported at 100% success rate during the UEFormat validation run (2026-02-26).
+</div>
+
+<div class="warning">
+  <strong>Batch import limit:</strong> Do not import all 1,327 animations in a single batch via MCP — UE5 will crash. Split into phases by vehicle type or category. Recommended batch size: ≤150 animations per run.
+</div>
+
+<pre><code># Convert PSA to ueanim (run from DFPakExplorer directory)
+DFPakExplorer.exe export-asset-ueformat --path Models/Vehicles/ATV/ --output ueanim/ATV/
+
+# UE5 Python import (run in UE5 Python console)
+exec(open(r"F:\UE_DF_Package2\Scripts\ue5_import_vehicle_anims.py", encoding="utf-8").read())</code></pre>
+
+<p style="text-align:center;color:#6e7681;font-size:0.8em;margin-top:40px;padding-top:20px;border-top:1px solid #21262d;">
+  Delta Force Vehicle Animation Guide — Package2 Reference &nbsp;|&nbsp; 1,327 PSA / 26 vehicle types &nbsp;|&nbsp; April 2026
+</p>
+
+</div><!-- /.container -->
+
+<script>
+/* ── Collapsible sections ── */
+function toggle(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+/* ── Sidebar active link on scroll ── */
+const headings = document.querySelectorAll('h2[id], .vehicle-section[id]');
+const sideLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+
+function updateActive() {
+  let current = '';
+  headings.forEach(el => {
+    if (window.scrollY + 120 >= el.offsetTop) current = el.id;
+  });
+  sideLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateActive, { passive: true });
+updateActive();
+
+/* ── Search / filter ── */
+function onSearch() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const countEl = document.getElementById('search-count');
+
+  // Clear previous highlights
+  document.querySelectorAll('.search-hit').forEach(el => {
+    el.outerHTML = el.textContent;
+  });
+
+  if (!q) {
+    // Show all sections
+    document.querySelectorAll('.vehicle-section').forEach(s => {
+      s.style.display = '';
+    });
+    countEl.textContent = '';
+    return;
+  }
+
+  let matchCount = 0;
+
+  document.querySelectorAll('.vehicle-section').forEach(section => {
+    const text = section.textContent.toLowerCase();
+    if (text.includes(q)) {
+      section.style.display = '';
+      // Auto-open matched sections
+      const header = section.querySelector('.vehicle-header');
+      const body = section.querySelector('.vehicle-body');
+      if (header && body) {
+        header.classList.add('open');
+        body.classList.add('open');
+      }
+      matchCount++;
+    } else {
+      section.style.display = 'none';
+    }
+  });
+
+  countEl.textContent = matchCount > 0 ? matchCount + ' vehicle(s) matched' : 'No matches';
+}
+
+/* ── Smooth scroll for sidebar links ── */
+document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // If it's a vehicle section, open it
+      if (target.classList.contains('vehicle-section')) {
+        const header = target.querySelector('.vehicle-header');
+        const body = target.querySelector('.vehicle-body');
+        if (header && body && !body.classList.contains('open')) {
+          header.classList.add('open');
+          body.classList.add('open');
+        }
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Force - Package2 Locomotion System Guide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.6; display: flex; }
+.sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: #161b22; border-right: 1px solid #30363d; padding: 20px 16px; overflow-y: auto; z-index: 100; }
+.sidebar h3 { color: #58a6ff; font-size: 0.9em; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #30363d; }
+.sidebar a { color: #8b949e; text-decoration: none; display: block; padding: 5px 8px; font-size: 0.85em; border-radius: 4px; margin: 1px 0; }
+.sidebar a:hover { color: #e6edf3; background: #21262d; }
+.sidebar a.sub { padding-left: 20px; font-size: 0.8em; color: #6e7681; }
+.sidebar a.sub:hover { color: #c9d1d9; }
+.sidebar .active { color: #58a6ff; background: #0d1117; }
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; margin-left: 280px; }
+h1 { color: #58a6ff; font-size: 2em; margin: 20px 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+h2 { color: #79c0ff; font-size: 1.5em; margin: 30px 0 15px; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+h3 { color: #d2a8ff; font-size: 1.2em; margin: 20px 0 10px; }
+p { margin: 10px 0; color: #c9d1d9; }
+code { background: #161b22; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; color: #79c0ff; font-size: 0.9em; }
+pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 15px 0; }
+pre code { padding: 0; background: none; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+th { background: #161b22; color: #58a6ff; padding: 10px 12px; text-align: left; border: 1px solid #30363d; }
+td { padding: 8px 12px; border: 1px solid #21262d; }
+tr:nth-child(even) { background: #0d1117; }
+tr:nth-child(odd) { background: #161b22; }
+.highlight { background: #1f2937; border-left: 4px solid #58a6ff; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.warning { background: #2d1b00; border-left: 4px solid #d29922; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.success { background: #0d2818; border-left: 4px solid #3fb950; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.diagram { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin: 15px 0; font-family: monospace; white-space: pre; font-size: 0.85em; line-height: 1.4; color: #8b949e; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin: 2px; }
+.tag-1p { background: #1f3a5f; color: #58a6ff; }
+.tag-3p { background: #2a1f3f; color: #d2a8ff; }
+.tag-shared { background: #1f3f2a; color: #3fb950; }
+.folder-tree { font-family: monospace; font-size: 0.9em; line-height: 1.8; }
+.folder-tree .dir { color: #58a6ff; }
+.folder-tree .file { color: #8b949e; }
+.folder-tree .note { color: #d29922; font-style: italic; }
+nav { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 20px 0; }
+nav a { color: #58a6ff; text-decoration: none; display: block; padding: 4px 0; }
+nav a:hover { text-decoration: underline; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.badge-count { background: #1f6feb; color: white; }
+.badge-path { background: #21262d; color: #79c0ff; font-family: monospace; font-size: 0.75em; padding: 3px 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Delta Force - Package2 Locomotion System Guide</h1>
+<p>UE_DF_Package2 (<code>F:\UE_DF_Package2</code>) - UEFormat imported, Mixamo bone names</p>
+<p><em>Last updated: April 1, 2026</em></p>
+
+<div class="sidebar">
+<h3>Locomotion Guide</h3>
+<a href="#architecture">1. 2-Tier Architecture</a>
+<a href="#dual-mesh">2. Dual Mesh System</a>
+<a class="sub" href="#dual-mesh">1P + 3P Diagram</a>
+<a class="sub" href="#dual-mesh">Comparison Table</a>
+<a href="#3p-abp">3. 3P AnimBP Layers</a>
+<a class="sub" href="#3p-abp">Layer 0: Locomotion</a>
+<a class="sub" href="#3p-abp">Layer 1: AimOffset</a>
+<a class="sub" href="#3p-abp">Layer 2: Weapon Slot</a>
+<a class="sub" href="#3p-abp">Layer 3: Full Body</a>
+<a class="sub" href="#3p-abp">Layer 4: Turn In Place</a>
+<a href="#1p-abp">4. 1P AnimBP Layers</a>
+<a class="sub" href="#1p-abp">Layer 0: Locomotion</a>
+<a class="sub" href="#1p-abp">Layer 1: Aim State</a>
+<a class="sub" href="#1p-abp">Layer 2: Weapon Action</a>
+<a class="sub" href="#1p-lower">4.1 Lower Body ABP</a>
+<a class="sub" href="#3p-data">4.2 3P Anim Data</a>
+<a class="sub" href="#1p-lower">BlendProfile</a>
+<a class="sub" href="#1p-lower">Montage Slots</a>
+<a class="sub" href="#1p-lower">Sockets</a>
+<a href="#folder">5. Folder Structure</a>
+<a href="#weapon">6. Weapon Integration</a>
+<a class="sub" href="#weapon">WeaponAnimData</a>
+<a class="sub" href="#weapon">Weapon Swap Flow</a>
+<a href="#bones">7. Bone Names (Mixamo)</a>
+<a href="#assets">8. Asset Counts</a>
+</div>
+
+<h2 id="architecture">1. 2-Tier Animation Architecture</h2>
+
+<div class="highlight">
+<strong>Key Finding:</strong> AR locomotion is shared across ALL weapon types. Only AR has Walk/Run/Sprint/Crouch/Prone. Other weapons (SMG, SR, SG, PT, DMR) only have weapon-specific actions (Fire, ChangeClip, Aim).
+</div>
+
+<div class="diagram">+--------------------------------------------------+
+|  Tier 1: Locomotion (Shared)         <span class="tag tag-shared">SHARED</span>      |
+|  /Game/Models/Weapons/Guns/AR/Anims/Male/3P/     |
+|  /Game/Models/Weapons/Guns/AR/Anims/Male/1P/     |
++---------------------+----------------------------+
+                      | Additive / Montage Override
++---------------------v----------------------------+
+|  Tier 2: Weapon Actions (Per-Weapon) <span class="tag tag-1p">1P</span> <span class="tag tag-3p">3P</span>    |
+|  /Game/Models/Weapons/Guns/{Type}/{Gun}/1P/       |
+|  /Game/Models/Weapons/Guns/{Type}/{Gun}/3P/       |
++--------------------------------------------------+</div>
+
+<h2 id="dual-mesh">2. Dual Mesh System</h2>
+
+<div class="diagram">+------------------------------------------+
+|           Local Player (1P)              |
+|                                          |
+|  +-------------+  +-----------------+   |
+|  | Upper_1P    |  | Body_3P (lower) |   |
+|  | (arms+wpn)  |  | (legs only,     |   |
+|  | 83 bones    |  |  visible when   |   |
+|  |             |  |  looking down)  |   |
+|  +------+------+  +--------+--------+   |
+|         |                  |             |
+|    ABP_1P            ABP_3P_Lower        |
++------------------------------------------+
+
++------------------------------------------+
+|           Other Players (3P)             |
+|                                          |
+|  +--------------------------------------+|
+|  |         Body_3P (full body)          ||
+|  |         113 bones                    ||
+|  |         + hero skin overlay          ||
+|  +------------------+-------------------+|
+|                     |                    |
+|               ABP_3P (full)              |
+|          Locomotion + AimOffset          |
+|          + Weapon Additive/Montage       |
++------------------------------------------+</div>
+
+<table>
+<tr><th></th><th><span class="tag tag-1p">1P (Local Player)</span></th><th><span class="tag tag-3p">3P (Other Players)</span></th></tr>
+<tr><td>Skeleton</td><td><code>C_Test_001_1P_Skeleton</code> (83 bones)</td><td><code>C_Test_001_3P_Skeleton</code> (113 bones)</td></tr>
+<tr><td>Mesh</td><td><code>_Upper_1P</code> (arms+hands)</td><td><code>_Body_3P</code> (full body)</td></tr>
+<tr><td>Locomotion</td><td>Speed-based 1D (5 stages)</td><td>Direction x Speed 2D (8 dir)</td></tr>
+<tr><td>Weapon Actions</td><td>Full animation (hands+weapon)</td><td>Upper body additive override</td></tr>
+<tr><td>AimOffset</td><td>None (camera = aim dir)</td><td>Up/Down/Left/Right 2D grid</td></tr>
+</table>
+
+<div class="warning">
+<strong>Delta Force 1P Lower Body:</strong> Lower body is NOT visible in 1P mode (you never see your legs). If we want to add leg visibility, we hide 3P Body and only show shadows, or blend the 3P lower body separately.
+</div>
+
+<h2 id="3p-abp">3. 3P AnimBP Layer Structure</h2>
+
+<pre><code>ABP_Character_3P
+|
++-- [Layer 0] Locomotion State Machine
+|   |
+|   +-- Standing: BlendSpace 2D (Direction x Speed)
+|   |   Idle:    AR_M_3P_IdleAttention (loop)
+|   |   Walk:    AR_M_3P_WalkF/B/L/R/FL/FR/BL/BR (8 dir)
+|   |   Run:     AR_M_3P_RunF/B/L/R/FL/FR/BL/BR (8 dir)
+|   |   Sprint:  AR_M_3P_sprint / SprintFL / SprintFR
+|   |
+|   +-- Crouching: BlendSpace 2D
+|   |   Idle:    AR_M_3P_crouch_Idle
+|   |   Walk:    AR_M_3P_crouch_Walk_f~br (8 dir)
+|   |   Run:     AR_M_3P_crouch_f~br (8 dir)
+|   |
+|   +-- Prone: BlendSpace 2D
+|   |   Idle:    AR_M_3P_Prone_idle
+|   |   Move:    AR_M_3P_Prone_MoveF~BR (8 dir)
+|   |
+|   +-- Transitions:
+|   |   Stand->Crouch, Crouch->Prone, Jump, Climb
+|   |   Starting (25), Stopping (39) per direction
+|
++-- [Layer 1] AimOffset (Additive, Spine/Neck/Head)
+|   Standing:  5 Yaw x 5 Pitch grid
+|   Crouching: Same structure
+|   Prone:     Left/Center/Right/Up
+|
++-- [Layer 2] Upper Body Weapon Slot (Montage)
+|   IdleAdditive, Fire, ChangeClip, GetWeapon, PutWeapon
+|   (Per-weapon swap via WeaponAnimData)
+|
++-- [Layer 3] Full Body Override (Montage)
+|   Death, Hit, Rescue, Lean, Supine
+|
++-- [Layer 4] Turn In Place (12 anims)</code></pre>
+
+<div class="success">
+<strong>Package2 Path:</strong> <code>/Game/Models/Weapons/Guns/AR/Anims/Male/3P/</code> - 474 shared locomotion anims
+</div>
+
+<h2 id="1p-abp">4. 1P AnimBP Layer Structure</h2>
+
+<pre><code>ABP_Character_1P
+|
++-- [Layer 0] Locomotion (1D BlendSpace by Speed)
+|   Speed: 0 -> 100 -> 300 -> 500 -> 700
+|          Idle   Walk    Run   Sprint SuperSprint
+|
+|   Path: /Game/Models/Weapons/Guns/AR/Anims/Male/1P/Locomotion/
+|   AR_M_1P_Idle_Loop, Walk_Loop, Run_Loop, Sprint_Loop, SuperSprint_Loop
+|
++-- [Layer 1] Aim State (Hip / ADS / Sprint Lock)
+|   AimOn/AimOff/AimIdle per weapon
+|
++-- [Layer 2] Weapon Action (Montage, per-weapon)
+|   Fire, AimFire, ChangeClip, GetWeapon, Inspect
+|
++-- [Layer 3] Full Body Override
+|   Prone, Crouch, Climb, Jump, Death, Interaction
+|
++-- [Linked] ABP_3P_LowerBody_For1P
+    Lower body from 3P skeleton (legs when looking down)
+    See Section 4.1 below for details</code></pre>
+
+<h3 id="1p-lower">4.1 ABP_3P_LowerBody_For1P — Deep Analysis</h3>
+
+<div class="highlight">
+<strong>Source:</strong> Extracted from original game via <code>dump-json "ABP_3P_LowerBody_For1P"</code><br>
+<strong>Path:</strong> <code>BluePrints/Characters/AnimationBP/Player1P/ABP_3P_LowerBody_For1P</code>
+</div>
+
+<p>Delta Force uses a <strong>separate AnimBP for 1P lower body</strong> that runs on the <strong>3P skeleton (C_Test_001_3P_Skeleton, 113 bones)</strong>. This is independent from the 1P upper body AnimBP (83 bones).</p>
+
+<h4>How it works:</h4>
+<div class="diagram">1P View Rendering:
++---------------------------+
+|  1P Upper Mesh            |  ABP_Character_1P (83 bones)
+|  (M_Kai_Upper_1P)         |  -> Arms + Weapon visible
+|  arms, hands, weapon      |
++---------------------------+
+           +
++---------------------------+
+|  3P Body Mesh (lower)     |  ABP_3P_LowerBody_For1P (113 bones)
+|  (M_Kai_Body_3P)          |  -> Only legs rendered
+|  legs, feet               |  -> Upper body hidden/masked
++---------------------------+
+
+Note: In Delta Force, lower body is NOT visible in 1P.
+The ABP exists but legs are hidden. Only shadows are cast.
+For our implementation, we can choose to show or hide legs.</div>
+
+<h4>Skeleton Details (from dump-json):</h4>
+<table>
+<tr><th>Property</th><th>Value</th></tr>
+<tr><td>Target Skeleton</td><td><code>C_Test_001_3P_Skeleton</code> (113 bones)</td></tr>
+<tr><td>Bone Names</td><td>Mixamo style (Root, Hips, LeftUpLeg, RightFoot, etc.)</td></tr>
+<tr><td>Virtual Bones (5)</td><td>
+<code>VB RightArm_RightForeArm</code><br>
+<code>VB LeftArm_LeftForeArm</code><br>
+<code>VB b_IK_Foot_L_LeftToeBase</code><br>
+<code>VB b_IK_Foot_R_RightToeBase</code><br>
+<code>VB Spine_b_IK_Gun</code>
+</td></tr>
+</table>
+
+<h4>BlendProfile: StandIdleToMove</h4>
+<p>Lower body bones have <strong>BlendScale 1.5x</strong> for smoother transitions when starting to move:</p>
+<table>
+<tr><th>Bone</th><th>BlendScale</th></tr>
+<tr><td>Root</td><td>1.5</td></tr>
+<tr><td>LeftUpLeg, LeftLeg, LeftFoot, LeftToeBase</td><td>1.5</td></tr>
+<tr><td>RightUpLeg, RightLeg, RightFoot, RightToeBase</td><td>1.5</td></tr>
+<tr><td>LeftUpLegTwist, RightUpLegTwist, LeftLegTwist</td><td>1.5</td></tr>
+<tr><td>b_IK_Foot_Root, b_IK_Foot_L, b_IK_Foot_R</td><td>1.5</td></tr>
+<tr><td>VB b_IK_Foot_L_LeftToeBase, VB b_IK_Foot_R_RightToeBase</td><td>1.5</td></tr>
+</table>
+
+<h4>Montage Slot Groups</h4>
+<table>
+<tr><th>Group</th><th>Slots</th></tr>
+<tr><td>DefaultGroup</td><td>UpperBody, FullBody, Locomotion, Turning, GroundSlot, CarryBody, RightArm, etc. (22 slots)</td></tr>
+<tr><td>HighLevelGroup</td><td>Rescue</td></tr>
+<tr><td>LeftArmGroup</td><td>LeftArm</td></tr>
+<tr><td>Locomotion</td><td>LocomotionFullBody, SpotTurn, LocomotionFullBodyRush, LocomotionAdditive</td></tr>
+</table>
+
+<h4>Key Sockets on 3P Skeleton</h4>
+<table>
+<tr><th>Socket</th><th>Parent Bone</th><th>Purpose</th></tr>
+<tr><td>WeaponPoint</td><td>Weapon_RightHand_Joint</td><td>Weapon attachment</td></tr>
+<tr><td>RightWeaponSocket</td><td>Weapon_RightHand_Joint</td><td>Right hand weapon</td></tr>
+<tr><td>LeftWeaponSocket</td><td>Weapon_LeftHand_Joint</td><td>Left hand weapon</td></tr>
+<tr><td>Weapon_BackL_Joint</td><td>Spine2</td><td>Back weapon (left)</td></tr>
+<tr><td>Weapon_BackR_Joint</td><td>Spine2</td><td>Back weapon (right)</td></tr>
+<tr><td>HeadSocket</td><td>Head</td><td>Head attachment</td></tr>
+<tr><td>Eye Socket</td><td>Root</td><td>Camera position (Y=-151)</td></tr>
+<tr><td>LeftHandClipSocket</td><td>LeftHand</td><td>Magazine grab point</td></tr>
+</table>
+
+<div class="warning">
+<strong>Implementation Choice:</strong> Delta Force hides 1P legs entirely (you never see your legs). If we want visible legs when looking down, we render the 3P Body lower half with this ABP. If we want Delta Force behavior, we hide the mesh and only cast shadows.
+</div>
+
+<h2 id="3p-data">4.2 3P Animation Data (Complete Inventory)</h2>
+
+<div class="highlight">
+<strong>Base Path:</strong> <code>/Game/Models/Weapons/Guns/AR/Anims/Male/3P/</code><br>
+<strong>Total:</strong> 474 shared locomotion animations<br>
+<strong>Note:</strong> ALL weapon types share these. Only AR has locomotion. SMG/SR/SG/PT/DMR only have weapon actions.
+</div>
+
+<h4>Standing Locomotion (BlendSpace 2D: Direction x Speed)</h4>
+<table>
+<tr><th>Animation</th><th>Count</th><th>Pattern</th></tr>
+<tr><td>Idle</td><td>2</td><td><code>AR_M_3P_IdleAttention</code>, <code>AR_M_3P_Aim_IdleBase</code></td></tr>
+<tr><td>Walk (8 directions)</td><td>5</td><td><code>AR_M_3P_WalkF/B/L/R/...</code></td></tr>
+<tr><td>Run (8 directions)</td><td>15</td><td><code>AR_M_3P_RunF/B/L/R/FL/FR/BL/BR</code> + variants</td></tr>
+<tr><td>Sprint</td><td>4</td><td><code>AR_M_3P_sprint</code>, <code>SprintFL</code>, <code>SprintFR</code>, <code>SprintFNew</code></td></tr>
+</table>
+
+<h4>Crouching Locomotion (BlendSpace 2D)</h4>
+<table>
+<tr><th>Animation</th><th>Count</th><th>Pattern</th></tr>
+<tr><td>Crouch Idle</td><td>1</td><td><code>AR_M_3P_crouch_Idle</code></td></tr>
+<tr><td>Crouch Walk (8 dir)</td><td>9</td><td><code>AR_M_3P_crouch_Walk_f/b/l/r/fl/fr/bl/br</code></td></tr>
+<tr><td>Crouch Run (8 dir)</td><td>8</td><td><code>AR_M_3P_crouch_f/b/l/r/fl/fr/bl/br</code></td></tr>
+<tr><td>Crouch Sprint</td><td>1</td><td><code>AR_M_3P_crouch_sprint</code></td></tr>
+</table>
+
+<h4>Prone Locomotion (BlendSpace 2D)</h4>
+<table>
+<tr><th>Animation</th><th>Count</th><th>Pattern</th></tr>
+<tr><td>Prone Idle</td><td>1</td><td><code>AR_M_3P_Prone_idle</code></td></tr>
+<tr><td>Prone Move (8 dir)</td><td>9</td><td><code>AR_M_3P_Prone_MoveF/B/L/R/FL/FR/BL/BR</code></td></tr>
+</table>
+
+<h4>AimOffset (Additive, Spine/Neck/Head only)</h4>
+<table>
+<tr><th>Stance</th><th>Count</th><th>Grid</th></tr>
+<tr><td>Standing AO</td><td>34</td><td>Yaw: -90, -45, 0, +45, +90 × Pitch: -80, -40, 0, +40, +80<br><code>AR_M_3P_IdleAOCenter</code>, <code>IdleAOLeft90_Down80</code>, etc.</td></tr>
+<tr><td>Crouching AO</td><td>16</td><td>Same structure: <code>AR_M_3P_CrouchIdleAO*</code></td></tr>
+<tr><td>Prone AO</td><td>~4</td><td>Left/Center/Right/Up</td></tr>
+</table>
+
+<h4>Transitions</h4>
+<table>
+<tr><th>Category</th><th>Count</th><th>Examples</th></tr>
+<tr><td>Starting (Walk/Run)</td><td>25</td><td><code>WalkStartF/B/L/R/FL/FR/BL/BR</code>, <code>RunStartF/B/L/R/...</code>, <code>SprintStartF</code><br>Path: <code>.../3P/starting/</code></td></tr>
+<tr><td>Stopping (Walk/Run)</td><td>39</td><td><code>RunStopF/B/L/R</code> + L/R foot variants, <code>SprintStopF/FL/FR</code><br>Path: <code>.../3P/Stoping/</code> (note: typo in original)</td></tr>
+<tr><td>Stance Changes</td><td>25</td><td><code>Idle2Crouch</code>, <code>Crouch2Prone</code>, <code>Prone2Crouch</code>, <code>Sprint2Idle</code>, <code>Prone2Sprint</code>, etc.</td></tr>
+<tr><td>Turn In Place</td><td>16</td><td><code>TurnLeft/Right</code>, <code>TurnLeft90/Right90</code>, <code>Crouch_TurnLeft90</code>, <code>Prone_TurnLeft90</code></td></tr>
+</table>
+
+<h4>Jump & Climb</h4>
+<table>
+<tr><th>Category</th><th>Count</th><th>Examples</th></tr>
+<tr><td>Jump</td><td>11</td><td><code>StandJumpStart</code>, <code>StandJumpLoop</code>, <code>JumpLandRun</code>, <code>RunJumploop</code></td></tr>
+<tr><td>Climb</td><td>13</td><td><code>Climb60/90/120/180</code> × Stand/Run variants + Curves</td></tr>
+</table>
+
+<h4>Full Body Override</h4>
+<table>
+<tr><th>Category</th><th>Count</th><th>Examples</th></tr>
+<tr><td>Death/Hit</td><td>52</td><td><code>DeathFront/Back/Left/Right</code> + Crouch/Prone variants, <code>Hit_StandHairF/B/L/R</code></td></tr>
+<tr><td>Supine</td><td>31</td><td><code>Supine_TurnLeft90</code>, <code>Prone2Supine</code>, <code>Supine2Crouch</code></td></tr>
+</table>
+
+<div class="success">
+<strong>3P Data Completeness:</strong> All categories from the original game are present in Package2. 474 shared locomotion anims covering Standing/Crouching/Prone movement, AimOffset grid, Starting/Stopping transitions, Turn In Place, Stance changes, Jump/Climb, Death/Hit, and Supine states.
+</div>
+
+<h2 id="folder">5. Package2 Folder Structure</h2>
+
+<div class="folder-tree">
+<span class="dir">/Game/Models/</span>
+<span class="dir">  Characters/</span>
+<span class="dir">    C_Test_001/</span>            <span class="note">-- Base skeleton (1P+3P)</span>
+<span class="dir">    Hero/M_Kai/M_Kai_002/</span>  <span class="note">-- Hero character with textures</span>
+<span class="dir">  Weapons/</span>
+<span class="dir">    Guns/</span>
+<span class="dir">      AR/</span>
+<span class="dir">        Anims/Male/</span>
+<span class="dir">          1P/Locomotion/</span>   <span class="note">-- <span class="tag tag-shared">SHARED</span> 1P locomotion (all weapons use this)</span>
+<span class="dir">          3P/</span>              <span class="note">-- <span class="tag tag-shared">SHARED</span> 3P locomotion (474 anims)</span>
+<span class="dir">            starting/</span>     <span class="note">-- Walk/Run start transitions</span>
+<span class="dir">            stopping/</span>     <span class="note">-- Walk/Run stop transitions</span>
+<span class="dir">        AK12/</span>
+<span class="dir">          1P/</span>              <span class="note">-- <span class="tag tag-1p">1P</span> AK12 weapon actions (Fire, ChangeClip, etc.)</span>
+<span class="dir">          3P/</span>              <span class="note">-- <span class="tag tag-3p">3P</span> AK12 weapon actions</span>
+<span class="dir">        HK416/</span>
+<span class="dir">          1P/</span>              <span class="note">-- 1P HK416 actions</span>
+<span class="dir">          3P/</span>              <span class="note">-- 3P HK416 actions</span>
+<span class="dir">      SMG/</span>                  <span class="note">-- No locomotion! Only per-weapon actions</span>
+<span class="dir">      SR/</span>                   <span class="note">-- Same: actions only</span>
+<span class="dir">      SG/ PT/ DMR/ LMG/ HMG/ GL/</span>
+<span class="dir">    Parts/</span>
+<span class="dir">      Rec/{Type}/{ReceiverName}/</span>
+<span class="dir">        {ReceiverName}_1P.uasset</span>   <span class="note">-- Weapon mesh (SkeletalMesh)</span>
+<span class="dir">        {ReceiverName}_3P.uasset</span>
+<span class="dir">        Anims/1P/</span>                  <span class="note">-- Weapon self-anims (bolt/trigger)</span>
+<span class="dir">        Anims/3P/</span>
+<span class="dir">        Textures/HD/</span>               <span class="note">-- Skin textures</span>
+<span class="dir">      Bar/ Mag/ Han/ PisG/ Muz/ ...</span> <span class="note">-- Other weapon parts</span>
+<span class="dir">    Melees/</span>
+</div>
+
+<h2 id="weapon">6. Weapon Integration</h2>
+
+<h3>WeaponAnimData (Per Weapon)</h3>
+
+<table>
+<tr><th>Animation</th><th>3P Path Example</th><th>1P Path Example</th></tr>
+<tr><td>Locomotion</td><td colspan="2"><code>AR/Anims/Male/{1P or 3P}/</code> <span class="tag tag-shared">SHARED</span> (all weapons)</td></tr>
+<tr><td>IdleAdditive</td><td><code>AR/AK12/3P/AR_M_3P_AK12_IdleAdditive</code></td><td>-</td></tr>
+<tr><td>Fire</td><td><code>AR/AK12/3P/AR_M_3P_AK12_Fire</code></td><td><code>AR/AK12/1P/AR_M_1P_AK12_Fire</code></td></tr>
+<tr><td>ChangeClip</td><td><code>AR/AK12/3P/AR_M_3P_AK12_ChangeClip</code></td><td><code>AR/AK12/1P/AR_M_1P_AK12_ChangeClip</code></td></tr>
+<tr><td>GetWeapon</td><td><code>AR/AK12/3P/AR_M_3P_AK12_GetWeaponInitial</code></td><td><code>AR/AK12/1P/AR_M_1P_AK12_GetWeapon</code></td></tr>
+<tr><td>Inspect</td><td>-</td><td><code>AR/AK12/1P/AR_M_1P_AK12_Inspect</code></td></tr>
+<tr><td>AimOn/Off</td><td>-</td><td><code>AR/AK12/1P/AR_M_1P_AK12_AimOn</code></td></tr>
+<tr><td>Self-Anim (bolt)</td><td colspan="2"><code>Parts/Rec/AR/Rec_AR_AK12_030/Anims/{1P or 3P}/</code></td></tr>
+</table>
+
+<h3>Weapon Swap Flow</h3>
+<div class="diagram">[Weapon A] -- PutWeapon --> [Swapping] --> GetWeapon -- [Weapon B]
+    |                                                |
+    +-- 1P: PutWeapon -> (mesh swap) -> GetWeapon   |
+    |       AimOff first if was aiming               |
+    +-- 3P: PutWeapon -> (IdleAdditive swap) -> GetWeapon
+           Lower body locomotion maintained</div>
+
+<h2 id="bones">7. Bone Names (Mixamo Style)</h2>
+
+<div class="warning">
+<strong>Important:</strong> Package2 uses <strong>Mixamo-style</strong> bone names (Root, Hips, Spine), NOT UE-style (root, pelvis, spine_01). This applies to both meshes (.uemodel) and animations (.ueanim). They match correctly.
+</div>
+
+<table>
+<tr><th>Mixamo (Package2)</th><th>UE Style (Package1)</th><th>Purpose</th></tr>
+<tr><td>Root</td><td>root</td><td>Root motion</td></tr>
+<tr><td>Hips</td><td>pelvis</td><td>Pelvis</td></tr>
+<tr><td>Spine / Spine1 / Spine2</td><td>spine_01/02/03</td><td>Spine chain</td></tr>
+<tr><td>RightShoulder</td><td>clavicle_r</td><td>Clavicle</td></tr>
+<tr><td>RightArm</td><td>upperarm_r</td><td>Upper arm</td></tr>
+<tr><td>RightForeArm</td><td>lowerarm_r</td><td>Lower arm</td></tr>
+<tr><td>Head</td><td>head</td><td>Head (case insensitive match)</td></tr>
+<tr><td>LeftUpLeg / RightUpLeg</td><td>thigh_l/r</td><td>Thigh</td></tr>
+<tr><td>LeftLeg / RightLeg</td><td>calf_l/r</td><td>Calf</td></tr>
+</table>
+
+<div class="success">
+<strong>WeaponPoint</strong> is imported as a <strong>socket</strong> (not a bone) in Package2. This is correct - it was a socket in the original game. Package1 had it as a bone because Blender doesn't support sockets.
+</div>
+
+<h2 id="assets">8. Asset Counts in Package2</h2>
+
+<table>
+<tr><th>Category</th><th>Count</th><th>Path</th></tr>
+<tr><td>3P Shared Locomotion</td><td><span class="badge badge-count">474</span></td><td><code>/Game/Models/Weapons/Guns/AR/Anims/Male/3P/</code></td></tr>
+<tr><td>1P Shared Locomotion</td><td><span class="badge badge-count">~50</span></td><td><code>/Game/Models/Weapons/Guns/AR/Anims/Male/1P/Locomotion/</code></td></tr>
+<tr><td>3P+1P Character Anims (total)</td><td><span class="badge badge-count">4,429</span></td><td><code>/Game/Models/Weapons/Guns/*/Anims/</code></td></tr>
+<tr><td>Weapon Self-Anims</td><td><span class="badge badge-count">1,980</span></td><td><code>/Game/Models/Weapons/Guns/{Type}/{Gun}/{1P,3P}/</code></td></tr>
+<tr><td>Weapon Part Self-Anims</td><td><span class="badge badge-count">884</span></td><td><code>/Game/Models/Weapons/Parts/*/Anims/</code></td></tr>
+<tr><td>Weapon Meshes</td><td><span class="badge badge-count">10,819</span></td><td><code>/Game/Models/Weapons/Parts/</code></td></tr>
+<tr><td>Weapon Materials (MI)</td><td><span class="badge badge-count">2,799</span></td><td><code>/Game/Materials/Weapons/</code></td></tr>
+<tr><td>GenTexDirHD Textures</td><td><span class="badge badge-count">4,199</span></td><td><code>/Game/GenTexDirHD/</code></td></tr>
+<tr><td>Skin Textures</td><td><span class="badge badge-count">1,663</span></td><td><code>/Game/Models/Weapons/Parts/*/Textures/HD/</code></td></tr>
+<tr><td>Characters</td><td><span class="badge badge-count">10</span></td><td><code>/Game/Models/Characters/</code></td></tr>
+</table>
+
+<hr style="border-color: #30363d; margin: 40px 0;">
+<p style="color: #484f58; text-align: center;">
+Delta Force Asset Extraction Project - Package2 Guide<br>
+SVN: https://222.107.148.242/svn/UE_DF_Package2<br>
+Generated: April 1, 2026
+</p>
+
+</div>
+</body>
+</html>
