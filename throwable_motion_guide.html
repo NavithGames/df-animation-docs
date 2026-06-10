@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Force - Throwable Weapons Motion Guide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.6; display: flex; }
+.sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: #161b22; border-right: 1px solid #30363d; padding: 20px 16px; overflow-y: auto; z-index: 100; }
+.sidebar h3 { color: #58a6ff; font-size: 0.9em; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #30363d; }
+.sidebar a { color: #8b949e; text-decoration: none; display: block; padding: 5px 8px; font-size: 0.85em; border-radius: 4px; margin: 1px 0; }
+.sidebar a:hover { color: #e6edf3; background: #21262d; }
+.sidebar a.sub { padding-left: 20px; font-size: 0.8em; color: #6e7681; }
+.sidebar a.sub:hover { color: #c9d1d9; }
+.sidebar .active { color: #58a6ff; background: #0d1117; }
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; margin-left: 280px; }
+h1 { color: #58a6ff; font-size: 2em; margin: 20px 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+h2 { color: #79c0ff; font-size: 1.5em; margin: 30px 0 15px; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+h3 { color: #d2a8ff; font-size: 1.2em; margin: 20px 0 10px; }
+p { margin: 10px 0; color: #c9d1d9; }
+code { background: #161b22; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; color: #79c0ff; font-size: 0.9em; }
+pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 15px 0; }
+pre code { padding: 0; background: none; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+th { background: #161b22; color: #58a6ff; padding: 10px 12px; text-align: left; border: 1px solid #30363d; }
+td { padding: 8px 12px; border: 1px solid #21262d; }
+tr:nth-child(even) { background: #0d1117; }
+tr:nth-child(odd) { background: #161b22; }
+.highlight { background: #1f2937; border-left: 4px solid #58a6ff; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.warning { background: #2d1b00; border-left: 4px solid #d29922; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.success { background: #0d2818; border-left: 4px solid #3fb950; padding: 12px 16px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin: 2px; }
+.tag-1p { background: #1f3a5f; color: #58a6ff; }
+.tag-3p { background: #2a1f3f; color: #d2a8ff; }
+.tag-shared { background: #1f3f2a; color: #3fb950; }
+nav { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 20px 0; }
+nav a { color: #58a6ff; text-decoration: none; display: block; padding: 4px 0; }
+nav a:hover { text-decoration: underline; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.badge-count { background: #1f6feb; color: white; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Delta Force - Throwable Weapons Motion Guide</h1>
+<p>UE_DF_Package2 (<code>F:\UE_DF_Package2</code>) - DF extract &rarr; UEFormat import (SVN r28)</p>
+<p><em>Last updated: June 10, 2026</em></p>
+
+<div class="sidebar">
+<h3>Throwable Motion</h3>
+<a href="#overview">1. Overview</a>
+<a href="#clips">2. 282 Anim Clips by Action</a>
+<a href="#tier">3. 2-Tier + Skeleton Mapping</a>
+<a href="#mechanism">4. Throw / Deploy Mechanism</a>
+<a href="index.html">&larr; Back to Index</a>
+</div>
+
+<h2 id="overview">1. Overview</h2>
+<p>Five throwable types extracted from Delta Force and imported into package2. Asset paths split across three folders (<code>ThrowWeapon</code> / <code>MilitaryProps</code> / <code>BattlefieldProps</code>).</p>
+<div class="success">Meshes <strong>31</strong> &nbsp;/&nbsp; Textures <strong>33</strong> &nbsp;/&nbsp; Materials (MI) <strong>9</strong> &nbsp;/&nbsp; Anims <strong>282</strong> &nbsp;&mdash;&nbsp; committed at SVN r28</div>
+<table>
+<tr><th>Type</th><th>Mesh / Asset</th><th>Folder (Models/Weapons/...)</th></tr>
+<tr><td>Frag grenade</td><td>Thr_Grenade_M67_001 (+DM51, Projectile_ATGrenade)</td><td>ThrowWeapon/Grenade/</td></tr>
+<tr><td>Smoke</td><td>Thr_Smoke_M83_002 / 003</td><td>ThrowWeapon/Smoke/</td></tr>
+<tr><td>Flash</td><td>Assault_C303_Flash</td><td>MilitaryProps/ (class device)</td></tr>
+<tr><td>Claymore</td><td>BF_Claymore_001</td><td>BattlefieldProps/ (deployable)</td></tr>
+<tr><td>AT-mine</td><td>BF_ATmine_001</td><td>BattlefieldProps/ (deployable)</td></tr>
+</table>
+
+<h2 id="clips">2. 282 Anim Clips by Action</h2>
+<p>Common use cycle: <code>GetWeapon (draw) &rarr; Idle / Idle_Loop (ready) &rarr; [use] &rarr; PutWeapon (holster)</code></p>
+<table>
+<tr><th>Type</th><th>Use actions</th><th>Clips</th></tr>
+<tr><td>Grenade (M67)</td><td>Throw: ThrowHigh / ThrowLow / ThrowPreIdle / End + character locomotion pool</td><td><span class="badge badge-count">146</span></td></tr>
+<tr><td>Smoke (M83)</td><td>GetWeapon / Idle_Loop / Fire / PutWeapon / Montage (all <code>_Left</code>)</td><td><span class="badge badge-count">32</span></td></tr>
+<tr><td>Flash (C303)</td><td>GetWeapon / Idle / Fire / PutWeapon / Montage (+3P Prone / Knife)</td><td><span class="badge badge-count">30</span></td></tr>
+<tr><td>Claymore</td><td>Deploy 4-stage: FireStart &rarr; FireLoop &rarr; FireEnd (/EndKeep) &rarr; CancelFire + Prone</td><td><span class="badge badge-count">35</span></td></tr>
+<tr><td>AT-mine</td><td>Same as Claymore (deploy 4-stage)</td><td><span class="badge badge-count">39</span></td></tr>
+</table>
+<div class="highlight">Grenade is heavy (146) because it pulls the shared <strong>character locomotion pool</strong> (Walk/Run/Sprint/Jump/Vault/Crouch/Prone Move). All imported with 0 failures, 0 bone-index mismatches.</div>
+
+<h2 id="tier">3. 2-Tier Application + Skeleton Mapping</h2>
+<ul>
+<li><strong>Grenade follows 2-Tier:</strong> Tier 1 = character locomotion pool (BlendSpace <code>BS_*</code>) + Tier 2 = throw action (ThrowHigh/Low). Uses <strong>ABP (anim state machine)</strong>.</li>
+<li><strong>Smoke / Flash / deploy-types are Montage-based</strong> (<code>*_M_1P_Montage</code>).</li>
+<li><span class="tag tag-1p">1P</span> hands / high-detail &nbsp; <span class="tag tag-3p">3P</span> world / others' view</li>
+<li>Equipment-use actions (Fire/GetWeapon/Put) &rarr; <strong>each device's own skeleton</strong></li>
+<li>Character throw / locomotion &rarr; <strong>NV_DF BaseMale skeleton</strong></li>
+</ul>
+
+<h2 id="mechanism">4. Throw / Deploy Mechanism</h2>
+<ul>
+<li><strong>Throw type (grenade / smoke):</strong> play Throw/Fire anim &rarr; at <code>AnimNotify</code>, detach hand mesh + spawn projectile &rarr; flight / explosion</li>
+<li><strong>Deploy type (claymore / mine):</strong> FireStart (begin) &rarr; FireLoop (deploying) &rarr; FireEnd (done = place <code>_Static</code> mesh in world) &rarr; CancelFire</li>
+</ul>
+<div class="warning">AnimNotify exact timing &amp; projectile class need to be confirmed from the DF gameplay BP (e.g. BP_AbilityBullet) or coordinated during implementation.</div>
+
+</div>
+</body>
+</html>
