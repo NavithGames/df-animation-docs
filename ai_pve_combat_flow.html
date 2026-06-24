@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DF PVE Infantry AI — Combat Logic Flow (WR2 Rebuild Guide)</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <style>
   :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
   * { box-sizing:border-box; }
@@ -20,7 +19,9 @@
   .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
   .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
   .diagram-toolbar button:hover { background:#343b46; }
-  #diagram { width:100%; height:74vh; }
+  #diagram { width:100%; max-height:82vh; overflow:auto; padding:14px; background:#191c22; }
+  #diagram .mermaid { transform-origin:top left; transition:transform .08s linear; display:inline-block; min-width:100%; }
+  #diagram .mermaid svg { display:block; }
   table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
   th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
   th { background:#262b34; color:var(--accent2); }
@@ -42,14 +43,13 @@
     <b>One line:</b> Spot enemy → lock target → <b>find cover & move → blind/aimed fire from cover → reposition if bad spot → evade on danger (grenade / air strike)</b>, looped. If no enemy → patrol / idle.
   </div>
 
-  <h2>1. Main Flowchart <span class="tag">drag to pan · scroll to zoom</span></h2>
+  <h2>1. Main Flowchart <span class="tag">fits page width · use ＋/－ to zoom</span></h2>
   <div class="diagram-box">
     <div class="diagram-toolbar">
-      <button onclick="pz&&pz.zoomIn()">＋ Zoom in</button>
-      <button onclick="pz&&pz.zoomOut()">－ Zoom out</button>
-      <button onclick="pz&&pz.resetZoom()&&pz.center()">⟳ Reset</button>
-      <button onclick="pz&&pz.fit()&&pz.center()">⤢ Fit</button>
-      <span>Interactive — drag to pan, scroll wheel to zoom.</span>
+      <button onclick="zoomIn()">＋ Zoom in</button>
+      <button onclick="zoomOut()">－ Zoom out</button>
+      <button onclick="resetZoom()">⤢ Fit width</button>
+      <span>Fits page width by default. Use ＋/－ to zoom; the box scrolls.</span>
     </div>
     <div id="diagram">
 <pre class="mermaid">
@@ -140,32 +140,20 @@ flowchart TD
 
 </div>
 <script>
-  let pz=null;
-  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  // useMaxWidth:true → mermaid sizes the SVG to 100% of the container width (always readable,
+  // never a tiny center blob). Zoom is done with a CSS transform on the .mermaid wrapper.
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:true, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
 
-  function refit(){ if(!pz) return; pz.resize(); pz.fit(); pz.center(); pz.zoomBy(0.92); pz.center(); }
+  let scale = 1;
+  function wrap(){ return document.querySelector("#diagram .mermaid"); }
+  function applyScale(){ const w=wrap(); if(w) w.style.transform = "scale("+scale+")"; }
+  function zoomIn(){ scale = Math.min(scale*1.25, 6); applyScale(); }
+  function zoomOut(){ scale = Math.max(scale/1.25, 0.4); applyScale(); }
+  function resetZoom(){ scale = 1; applyScale(); }
 
   window.addEventListener("load", async ()=>{
     await mermaid.run({ querySelector:".mermaid" });
-    const svg = document.querySelector("#diagram svg");
-    if (!svg) return;
-    // keep width/height attributes (svg-pan-zoom needs them to size the viewport),
-    // but force the rendered box to fill the container.
-    svg.setAttribute("width","100%");
-    svg.setAttribute("height","100%");
-    svg.style.width="100%";
-    svg.style.height="100%";
-    svg.style.maxWidth="none";
-    svg.style.display="block";
-    pz = svgPanZoom(svg, {
-      zoomEnabled:true, panEnabled:true, controlIconsEnabled:false,
-      fit:true, center:true, contain:false, minZoom:0.05, maxZoom:25, zoomScaleSensitivity:0.35
-    });
-    // fonts/layout settle → re-fit a couple times so it fills the screen, not a tiny center blob
-    requestAnimationFrame(refit);
-    setTimeout(refit, 250);
-    setTimeout(refit, 800);
-    window.addEventListener("resize", refit);
+    resetZoom();
   });
 </script>
 </body>
