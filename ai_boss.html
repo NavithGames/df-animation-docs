@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF Boss AI - Skill/Phase Layer over the Common Combat Base</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:12px 0 6px; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  .diagram-view { width:100%; max-height:78vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  .diagram-view.grabbing { cursor:grabbing; }
+  .diagram-view .mermaid { display:inline-block; }
+  .diagram-view .mermaid svg { display:block; pointer-events:none; max-width:none; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF Boss AI - Skill/Phase Layer over the Common Combat Base</h1><p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — these are reconstruction guides. · prepared by Wjna · 2026-06-24</p><div class="nav"><a class="" href="ai_index.html">Index</a><a class="" href="ai_pve_combat_flow.html">PVE Overview</a><a class="" href="ai_pve_detail.html">PVE Detail</a><a class="" href="ai_pvp.html">PvP</a><a class="" href="ai_squad.html">Squad</a><a class="" href="ai_vehicle.html">Vehicle/Mounted</a><a class="cur" href="ai_boss.html">Boss</a></div></header>
+<div class="wrap"><div class="note">Boss AI = a shared cover-combat base (RunCoverEQS / MoveToCover / DFMAITask_Shoot on BB_SOLAI_V2_Template) wrapped by a per-boss L3 root that swaps Patrol/Leisure vs Fight, where Fight is a Selector of skill subtrees gated by distance-band + cooldown. Bosses with no own BT ride the base directly.</div><h2>Boss taxonomy (12+)</h2><div class="note">Behavior tags taken from real BT filenames per boss.</div><table><tr><th>Boss</th><th>Behavior BTs (tags)</th><th>Archetype</th></tr><tr><td>Boss03</td><td>Fight, Shoot, StandFight; Boss03Skill{Missile,Smoke}; RCVLaunchMissile</td><td>Cover gunner + missile/smoke skills, RCV partner</td></tr><tr><td>Boss05</td><td>FightWithHeli; Patrol{Patrol,Guard,Follow}; GroupMove_Benchmark; Smoke</td><td>Squad commander, heli fight, group-benchmark</td></tr><tr><td>Boss05_HENC</td><td>Ambush, Rush, FightWithHeli, EnsureHammerState</td><td>Melee hammer rusher/ambusher</td></tr><tr><td>Boss06_Warder</td><td>GroupMove_Benchmark, Leisure; FindSaluteLoc; FindRoamPoint</td><td>Parade/roam NPC + group-move benchmark</td></tr><tr><td>Boss07</td><td>PortGuard, Patrol, Surrender; Guard (GunShield), RCV (launcher)</td><td>Scripted multi-phase boss, RCV+shield guards</td></tr><tr><td>Crocodile</td><td>Leisure, CrocodileDirector; Random_800 EQS</td><td>Creature, director-driven roam</td></tr><tr><td>Firebat</td><td>(no BT) FireShootCurve, FlameDetect, FloorBurnVolume</td><td>Flamethrower elite (rides common base)</td></tr><tr><td>HeavyMachineGun</td><td>(no BT) BP + physics</td><td>Heavy/stationary MG elite (common base)</td></tr><tr><td>HelicopterPilot</td><td>Patrol/LowPatrol/HighPartol/L3; CircleMove/Fire/MoveTo/AlertMove</td><td>Aerial vehicle boss (Boss04 config)</td></tr><tr><td>Maurice</td><td>Fight (Init/MainTargetSwitch/NormalShoot/Melee/MeleeSkill/CrossbowSmoke/CrackTheWhip/EarlyHand/LateHand Mid/Far/Grenade/Rolling/Slide); Leisure</td><td>Phased melee+crossbow skill boss (representative)</td></tr><tr><td>RCV</td><td>RCV_Root; RCVShoot, RCVSuicide; ABP_RCVAI_{Gun,SuicideCar,Vehicle}</td><td>Remote combat vehicle / suicide-car</td></tr><tr><td>RPG</td><td>(no BT) BP_DFMAICharacter_RPG</td><td>RPG rocket elite (common base)</td></tr><tr><td>Reis</td><td>Reis_L3, ReisAssault_L3, ReisShielder_L3, WanderShoot_L3; ThrowGrenade; CloseToBoss EQS</td><td>Squad-leader gunman + assault/shielder guards</td></tr><tr><td>Romytheus</td><td>Cinematic; Drama_Romytheus_{Assault,Shielder,Group}; FormationName</td><td>Formation/cinematic squad boss</td></tr><tr><td>Shielder</td><td>(no BT) ShielderBase/Light variants</td><td>Riot-shield unit (common cover base)</td></tr></table><h2>Representative fight flow (Maurice)</h2><div class="note">Phased melee+crossbow skill boss: Init -&gt; distance/cooldown-gated skill selection -&gt; target switch -&gt; loop.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  Root["BT_BossMaurice_L3 (root Selector)<br/>BB: BB_SOLAI_V2_Template"]
+  Root -->|"enemy seen (IFLowPatrol_Other_C false)"| FightBranch["Fight branch"]
+  Root -->|"no target"| Leisure["Leisure / Patrol<br/>RandomCooldown"]
+  FightBranch --> Fight["BT_BossMaurice_Fight<br/>(MaintargetDead_C guards)"]
+  Fight --> Init["RunBehavior: InitFight<br/>InitMauriceAction_C (one-shot)"]
+  Init --> SkillSel["Selector (skill pick)<br/>svc SetFocus / FindVisibleProjectile"]
+  SkillSel -->|"near + cooldown"| Melee["Melee / MeleeSkill"]
+  SkillSel -->|"mid + cooldown"| EarlyLate["EarlyHand_Mid / LateHand_Mid"]
+  SkillSel -->|"far + cooldown"| Ranged["CrossbowSmoke / CrackTheWhip / EarlyHand_Far"]
+  SkillSel -->|"grenade detected"| Dodge["Rolling / SlideSkill / Grenade_Near|Far"]
+  SkillSel -->|"CheckCanShootTarget_C false"| Reposition["transfer / GetBackPrefecture<br/>(RunCoverEQS base)"]
+  SkillSel -->|"default / cooldown loop"| Normal["NormalShoot<br/>DFMAITask_Shoot + DynamicWait"]
+  Melee --> Switch["MainTargetSwitch"]
+  Ranged --> Switch
+  Normal --> Switch
+  Switch --> SkillSel
+</pre></div></div><table><tr><th>Stage</th><th>DF node/asset (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Root/state split</td><td><code>BT_BossMaurice_L3</code>, <code>BTD_IFLowPatrol_Other_C</code>, <code>RandomCooldown</code></td><td>Top Selector: patrol/leisure vs fight by perception</td><td>BT root Selector; rebuild IFLowPatrol as decorator checking AISense/target BB</td></tr><tr><td>Blackboard</td><td><code>BB_SOLAI_V2_Template</code></td><td>Shared keys: MainTarget, ThreatLoc, focus, leave-time</td><td>Recreate BB (MainTarget Object, ThreatLoc Vector, state bools)</td></tr><tr><td>Fight orchestrator</td><td><code>BT_BossMaurice_Fight</code> + <code>MaintargetDead_C</code>, RunBehavior x13</td><td>Selector dispatching to skill subtrees</td><td>BT calling RunBehavior subtrees (engine)</td></tr><tr><td>Init phase</td><td><code>InitFight</code>, <code>InitMauriceAction_C</code></td><td>One-shot fight entry (taunt/pose/setup)</td><td>Decorator BP latching once per engagement</td></tr><tr><td>Skill by distance</td><td><code>BTDecorator_DistanceToTarget_C</code>; banded subtrees EarlyHand/LateHand Mid/Far, Melee_Near, Grenade_Near/Far</td><td>Distance bands choose skill set</td><td>Rebuild DistanceToTarget decorator per band</td></tr><tr><td>Cooldown gating</td><td><code>BTDecorator_Cooldown</code> (10.0), <code>RandomCooldown</code>, <code>Random_C</code></td><td>Per-skill cooldown + random spread so skills cycle</td><td>Engine Cooldown + random; re-tune values</td></tr><tr><td>LoS / can-fire</td><td><code>CheckCanShootTarget_C</code>, <code>BTD_CommonLineTrace_C</code></td><td>Skip skill if no line of sight</td><td>BP decorator: line trace to target</td></tr><tr><td>Phase/health</td><td><code>CheckHealth_C</code></td><td>Gate skills by HP (phase change)</td><td>Health-band decorator -&gt; enrage/finality</td></tr><tr><td>Skill payloads</td><td><code>DFMAITask_Shoot</code>, <code>DynamicWait</code>, CrossbowSmoke/MeleeSkill/SlideSkill/Rolling</td><td>Attack execution (fire/melee/smoke/dodge)</td><td>BTTask BPs firing GAS abilities / montages</td></tr><tr><td>Target switch</td><td><code>MainTargetSwitch</code></td><td>Re-pick aggro target, loop back</td><td>BTTask scoring threat -&gt; set MainTarget</td></tr><tr><td>Cover base (shared)</td><td><code>RunCoverEQS</code>, <code>MoveToCover</code>, <code>RequestCoverStateSimple</code>, EQS Cover, BP_CoverManager</td><td>Generic cover-find used by ALL bosses underneath skills</td><td>One shared cover library; bosses layer skills on top</td></tr></table><h2>Notes (layering, group-benchmark, node types, caveats)</h2><ul><li>Layering: every boss = common cover-combat base + per-boss skill set + phase/distance logic. Base lives in Common/Task (RunCoverEQS, MoveToCover, RequestCoverStateSimple, BaseFightTarget) + Common/EQS/Cover + BP_CoverManager on BB_SOLAI_V2_Template. Bosses with NO own BT (Firebat, HeavyMachineGun, RPG, Shielder) ride this base directly — only the character BP + curves/abilities differ. Bosses with a Fight/ folder (Maurice, Reis, Boss03) add a Selector of skill subtrees on top. (See PVE Detail for the shared base.)</li><li>Distance-band selection is encoded in subtree filenames (Maurice EarlyHand/LateHand_Mid|Far, Melee_Near, Grenade_Near|Far; Reis CloseToBoss_800/1000/1200) + BTDecorator_DistanceToTarget_C. Cooldowns via engine Cooldown (10.0s seen) + RandomCooldown/Random_C to avoid same-skill spam.</li><li>Group-benchmark pattern: BP_Drama_BossNN_Group_Benchmark + BT_BossNN_GroupMove_Benchmark (Boss05/06) are squad-formation reference trees a commander runs to drive minions (BP_Boss05SquadManager, Boss05_CallAround, GetSquadCommanderBBVector) — the group-coordination layer (see Squad page); minions still run the common cover base.</li><li>Engine-default (reuse): Selector/Sequence/SimpleParallel/RandomSelect, RunBehavior/Wait, Cooldown/Blackboard/Loop/ForceSuccess.</li><li>DF C++ (reimplement): DFMAITask_Shoot, DynamicWait, DFMAITask_Boss03Skill*, EQS generators/contexts. _C Blueprint (rebuild, cooked): InitMauriceAction_C, DistanceToTarget_C, CheckCanShootTarget_C, CheckHealth_C, CommonLineTrace_C, GrenadeDetectedSpecifyRadius_C, RunCoverEQS_C.</li><li>Caveat: numeric thresholds (distance bands, cooldown durations, HP phase cutoffs) live in the cooked Blueprint/CDO — BTDecorator_DistanceToTarget_C Properties came back empty. Graph TOPOLOGY is fully recoverable; tuning values must be re-derived by play-testing.</li></ul></div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  window.addEventListener("load", async ()=>{
+    try { await mermaid.run({ querySelector:".mermaid" }); } catch(e){ console.error(e); }
+    document.querySelectorAll(".diagram-box").forEach(setupBox);
+  });
+  function setupBox(box){
+    const view = box.querySelector(".diagram-view");
+    const svg = view.querySelector(".mermaid svg");
+    if(!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const baseW = (vb && vb.width) || svg.getBBox().width;
+    const baseH = (vb && vb.height) || svg.getBBox().height;
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    let scale=1;
+    const apply=()=>{ svg.style.width=(baseW*scale)+"px"; svg.style.height=(baseH*scale)+"px"; };
+    box._zoomIn =()=>{ scale=Math.min(scale*1.2,6); apply(); };
+    box._zoomOut=()=>{ scale=Math.max(scale/1.2,0.2); apply(); };
+    box._fit    =()=>{ scale=(view.clientWidth-28)/baseW; apply(); };
+    const f=(view.clientWidth-28)/baseW; scale=Math.max(1, f*1.1); apply();
+    let down=false, sx, sy, sl, st;
+    view.addEventListener("mousedown", e=>{ down=true; sx=e.pageX; sy=e.pageY; sl=view.scrollLeft; st=view.scrollTop; view.classList.add("grabbing"); e.preventDefault(); });
+    window.addEventListener("mousemove", e=>{ if(!down) return; view.scrollLeft=sl-(e.pageX-sx); view.scrollTop=st-(e.pageY-sy); });
+    window.addEventListener("mouseup", ()=>{ down=false; view.classList.remove("grabbing"); });
+    view.addEventListener("wheel", e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); (e.deltaY<0?box._zoomIn:box._zoomOut)(); }, {passive:false});
+  }
+  function zb(btn, fn){ const box=btn.closest(".diagram-box"); if(box && box["_"+fn]) box["_"+fn](); }
+</script>
+</body></html>

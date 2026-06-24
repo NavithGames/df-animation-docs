@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF Vehicle / Mounted-Weapon AI - Gunner / Turret / Vehicle Bots</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:12px 0 6px; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  .diagram-view { width:100%; max-height:78vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  .diagram-view.grabbing { cursor:grabbing; }
+  .diagram-view .mermaid { display:inline-block; }
+  .diagram-view .mermaid svg { display:block; pointer-events:none; max-width:none; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF Vehicle / Mounted-Weapon AI - Gunner / Turret / Vehicle Bots</h1><p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — these are reconstruction guides. · prepared by Wjna · 2026-06-24</p><div class="nav"><a class="" href="ai_index.html">Index</a><a class="" href="ai_pve_combat_flow.html">PVE Overview</a><a class="" href="ai_pve_detail.html">PVE Detail</a><a class="" href="ai_pvp.html">PvP</a><a class="" href="ai_squad.html">Squad</a><a class="cur" href="ai_vehicle.html">Vehicle/Mounted</a><a class="" href="ai_boss.html">Boss</a></div></header>
+<div class="wrap"><div class="note">DF "vehicle AI" = AI <b>operating</b> mounted MGs / turrets / driving vehicle bots (RCV, heli), NOT the player enter/exit-ride system (that is separate gameplay, tied to vehicle rigging sockets). Logic is cooked C++ tasks + _C BP nodes; rebuild = reimplement the C++ task contracts + re-author the BTs.</div><h2>Asset inventory</h2><ul><li>Mounted-weapon tasks (Common/Task): <code>BTTask_Drama_UseMachineGun</code> (casts BP_Drama_MachineGun_Common), <code>BTTask_Drama_UseMachineGun_Vehicle</code> (uses DFMAIEnvironmentInteractComponent, mounts BP_SceneMachineGun_ForRaid_Vehicle, binds DFMVehicleHealthEvent_Dead), <code>BTTask_SetMachineGunFocusMode</code>, <code>BTS_MachineGunTowerUpdateTarget</code> (service), <code>BTTask_FocusState</code>/<code>ForceFocus</code> (+AIFocusState enum).</li><li>HeavyMG bot (Boss/HeavyMachineGun): BP_DFMAICharacter_HeavyMachineGun(_HS) driven by DFMAIHeavyMachineGunComponent (+WeaponBase, parachute deploy).</li><li>VirtualTurret: BP_DFMCharacter_VirtualTurretAI — minimal camera/scene pawn = target-only virtual gunner.</li><li>RCV vehicle bot (Boss/RCV): BT_RCV_Root, BTTask_RCVShoot, BTTask_RCVSuicide, ABP_RCVAI_Vehicle/_Gun/_SuicideCar, EQS_RCV_NearCommander, curves RCVDelayHomingWithDist/RCVAITurnCurve. RCV drives via DFMAICharacterMovementComponent (a character that drives), NOT a Chaos vehicle.</li><li>HelicopterPilot (Boss/HelicopterPilot): BT_HelicopterPilot_L3 (combat) + _Patrol/_HighPartol/_LowPatrol; BTT_HelicopterFire (VehicleBoss04SkillState), MoveTo/CircleMove/AlertMove; BTService_HelicopterSteeringData (RepSteeringData); BB_SOL_HelicopterPilot; AIHelicopterPatrolJob.</li></ul><h2>Mounted-weapon flow (AI gunner / turret)</h2><div class="note">Acquire target -&gt; set focus mode -&gt; aim (turret yaw/pitch) -&gt; fire via MG component; release on death.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+   A["AI pawn (HeavyMG bot / VirtualTurret)<br/>or driver enters seat"] --> B{"Static MG or<br/>vehicle-mounted?"}
+   B -->|"static tower"| C["BTS_MachineGunTowerUpdateTarget<br/>(service: pick best target via GPGameMode)"]
+   B -->|"vehicle MG"| D["BTTask_Drama_UseMachineGun_Vehicle<br/>DFMAIEnvironmentInteractComponent<br/>mount BP_SceneMachineGun_ForRaid_Vehicle"]
+   C --> E["BTTask_SetMachineGunFocusMode (on DFMAICharacter)"]
+   D --> E
+   E --> F["BTTask_FocusState / ForceFocus<br/>AIFocusState enum -> aim yaw/pitch"]
+   F --> G["DFMAIHeavyMachineGunComponent<br/>traverse + StartFire/StopFire"]
+   G --> H{"target lost / MG or vehicle dead?"}
+   H -->|"vehicle Dead delegate"| I["DFMVehicleHealthEvent_Dead<br/>-> finish task, dismount"]
+   H -->|"no target"| C
+</pre></div></div><h2>Vehicle-bot flow (RCV / heli)</h2><div class="note">Patrol vs fight -&gt; focus + distance -&gt; weapon select (missile/MG/suicide) -&gt; steering each tick.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+   A["BT root<br/>(BT_RCV_Root / BT_HelicopterPilot_L3)"] --> B["InitBehaviors / AcquireJob<br/>set behavior keys + patrol job"]
+   B --> C{"EnterFight_C / CheckFightState_C"}
+   C -->|"no enemy"| D["PATROL<br/>RCV: EQSFindBestLocation (near commander)<br/>Heli: SetHelicopterGoal + CircleMove/AlertMove"]
+   C -->|"enemy"| E["FocusState_C (G_MainTarget)<br/>+ DistanceToTarget_C"]
+   E --> F{"weapon select"}
+   F -->|"RCV"| G["BTTask_RCVShoot_C<br/>homing missile (RCVDelayHomingWithDist)<br/>+ MG via MultiWeaponManager"]
+   F -->|"heli"| H["BTT_HelicopterFire_C<br/>VehicleBoss04SkillState:<br/>missile / MG strafe (Cooldown)"]
+   G --> I{"RCV close enough?"}
+   I -->|"yes"| J["BTTask_RCVSuicide_C (ram)"]
+   D --> K["BTService_HelicopterSteeringData<br/>RepSteeringData each tick<br/>(RCV: MotionAction move/turn + RCVAITurnCurve)"]
+   H --> K
+   G --> K
+</pre></div></div><table><tr><th>Stage</th><th>DF node/asset (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Target acquire (tower)</td><td><code>BTS_MachineGunTowerUpdateTarget</code> (casts GPGameMode/DFMAIController)</td><td>Per-tick scan of enemies, write best target to BB</td><td>BTService (BP/C++) using your perception/team list</td></tr><tr><td>Focus / aim</td><td><code>BTTask_FocusState_C</code> + AIFocusState enum + <code>ForceFocus</code>, <code>SetMachineGunFocusMode</code></td><td>Sets focus so controller rotates aim; MG-specific aiming mode</td><td>Rebuild enum+tasks; drive turret yaw/pitch from focus dir</td></tr><tr><td>Fire (heavy/static MG)</td><td><code>DFMAIHeavyMachineGunComponent</code> (+WeaponBase)</td><td>C++ owns traverse limits + start/stop fire; BT gates it</td><td>New MountedWeaponComponent (traverse clamp, cadence, ammo)</td></tr><tr><td>Mount/dismount (vehicle)</td><td><code>BTTask_Drama_UseMachineGun_Vehicle</code> -&gt; DFMAIEnvironmentInteractComponent, BP_SceneMachineGun_ForRaid_Vehicle, DFMVehicleHealthEvent_Dead</td><td>AI occupies world MG actor, releases on vehicle death</td><td>Interact/occupy component + mounted-MG actor w/ seat sockets; bind death event</td></tr><tr><td>Virtual gunner</td><td><code>BP_DFMCharacter_VirtualTurretAI</code> (camera/scene only)</td><td>Lightweight invisible gunner pawn that only aims+fires</td><td>Minimal AI pawn possessing the turret; reuse focus+fire tasks</td></tr><tr><td>Drive/patrol (RCV)</td><td><code>BT_RCV_Root</code> (EnterFight_C, DistanceToTarget_C, EQSFindBestLocation_C) + EQS_RCV_NearCommander, MotionAction_RCV*, RCVAITurnCurve</td><td>Patrols near commander, EQS picks pos, motion actions + turn curve steer</td><td>Re-author BT; RCV = character-movement bot (not Chaos vehicle)</td></tr><tr><td>Vehicle weapons (RCV)</td><td><code>BTTask_RCVShoot_C</code> + RCVDelayHomingWithDist, MultiWeaponManager; <code>BTTask_RCVSuicide_C</code></td><td>Homing missile (delay scaled by distance) + MG; suicide rams</td><td>Shoot task -&gt; your projectile/missile; curve = delay-vs-distance</td></tr><tr><td>Heli combat</td><td><code>BT_HelicopterPilot_L3</code> + <code>BTT_HelicopterFire_C</code> (VehicleBoss04SkillState), Cooldown/Random/TimeLimit</td><td>Skill-state machine: missile strafe / MG strafe by random+cooldown</td><td>Re-author tree; fire modes = skill-state enum gated by cooldown</td></tr><tr><td>Heli steering</td><td><code>BTService_HelicopterSteeringData_C</code> (RepSteeringData), MoveTo/CircleMove/AlertMove, SetHelicopterGoal_C, AIHelicopterPatrolJob</td><td>Streams replicated steering (pitch/roll/yaw/throttle) toward goal</td><td>Steering component emitting a replicated struct; tasks set goal+orbit</td></tr><tr><td>Patrol altitude</td><td><code>BTD_IFHightPartol_C</code>/<code>IFLowPatrol_C</code>, BB_SOL_HelicopterPilot keys</td><td>High vs low patrol + leave-fight altitude transitions</td><td>Decorators + BB; keys map directly</td></tr></table><h2>Notes (AI vs player-ride, rigging sockets, caveats)</h2><ul><li>AI-operated vs player-ride: every asset here is an AI behaving (gunner aims/fires, pilot steers, RCV drives) — AI possesses a pawn + runs a BT. The player enter/exit-ride system is a SEPARATE gameplay system, not these BTs. <code>BTTask_Drama_UseMachineGun_Vehicle</code> touches the seat layer via DFMAIEnvironmentInteractComponent + BP_SceneMachineGun_ForRaid_Vehicle — that&#x27;s the boundary where AI plugs into the shared mounted-weapon/seat actor the ride system also uses.</li><li>Rigging-socket connection: turret yaw/pitch + gunner seat are properties of the vehicle/MG actor&#x27;s skeletal RIG (sockets/bones), not the BT. The BT only computes a focus direction; the MountedWeaponComponent converts it to clamped yaw/pitch on the turret socket and places the gunner at the seat socket. So the BT is reusable but depends on the vehicle rig exposing turret-yaw / turret-pitch / gunner-seat sockets — wire those in (ties to the vehicle rigging discussed with ani49).</li><li>Engine-default (reuse): Selector/Sequence/SimpleParallel/RandomSelect, Blackboard/Cooldown/ForceSuccess/Loop/TimeLimit decorators, Wait/RunBehavior, BTService/BTTask BlueprintBase.</li><li>DF C++ (reimplement): DFMAIHeavyMachineGunComponent, DFMAIEnvironmentInteractComponent, DFMAICharacterMovementComponent, MultiWeaponManagerComponent, structs RepSteeringData/VehicleBoss04SkillState, AIHelicopterPatrolJob, GP* base (GPGameMode/GPCharacter).</li><li>Caveat: exact fire rates, traverse limits, missile homing constants, steering gains are NOT in json (cooked). Import the curve assets (RCVDelayHomingWithDist, RCVAITurnCurve, SuicideBlinkCurve, HelicotperFireZHight) for the tunable reference values.</li></ul></div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  window.addEventListener("load", async ()=>{
+    try { await mermaid.run({ querySelector:".mermaid" }); } catch(e){ console.error(e); }
+    document.querySelectorAll(".diagram-box").forEach(setupBox);
+  });
+  function setupBox(box){
+    const view = box.querySelector(".diagram-view");
+    const svg = view.querySelector(".mermaid svg");
+    if(!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const baseW = (vb && vb.width) || svg.getBBox().width;
+    const baseH = (vb && vb.height) || svg.getBBox().height;
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    let scale=1;
+    const apply=()=>{ svg.style.width=(baseW*scale)+"px"; svg.style.height=(baseH*scale)+"px"; };
+    box._zoomIn =()=>{ scale=Math.min(scale*1.2,6); apply(); };
+    box._zoomOut=()=>{ scale=Math.max(scale/1.2,0.2); apply(); };
+    box._fit    =()=>{ scale=(view.clientWidth-28)/baseW; apply(); };
+    const f=(view.clientWidth-28)/baseW; scale=Math.max(1, f*1.1); apply();
+    let down=false, sx, sy, sl, st;
+    view.addEventListener("mousedown", e=>{ down=true; sx=e.pageX; sy=e.pageY; sl=view.scrollLeft; st=view.scrollTop; view.classList.add("grabbing"); e.preventDefault(); });
+    window.addEventListener("mousemove", e=>{ if(!down) return; view.scrollLeft=sl-(e.pageX-sx); view.scrollTop=st-(e.pageY-sy); });
+    window.addEventListener("mouseup", ()=>{ down=false; view.classList.remove("grabbing"); });
+    view.addEventListener("wheel", e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); (e.deltaY<0?box._zoomIn:box._zoomOut)(); }, {passive:false});
+  }
+  function zb(btn, fn){ const box=btn.closest(".diagram-box"); if(box && box["_"+fn]) box["_"+fn](); }
+</script>
+</body></html>
