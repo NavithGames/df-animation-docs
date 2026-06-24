@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF PvP-Mode AI - Objective / Threat-Curve Bots</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:12px 0 6px; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  .diagram-view { width:100%; max-height:78vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  .diagram-view.grabbing { cursor:grabbing; }
+  .diagram-view .mermaid { display:inline-block; }
+  .diagram-view .mermaid svg { display:block; pointer-events:none; max-width:none; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF PvP-Mode AI - Objective / Threat-Curve Bots</h1><p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — these are reconstruction guides. · prepared by Wjna · 2026-06-24</p><div class="nav"><a class="" href="ai_index.html">Index</a><a class="" href="ai_pve_combat_flow.html">PVE Overview</a><a class="" href="ai_pve_detail.html">PVE Detail</a><a class="cur" href="ai_pvp.html">PvP</a><a class="" href="ai_squad.html">Squad</a></div></header>
+<div class="wrap"><div class="note">PvP-mode AI is an objective/event-driven "bot-as-player" system: one shared BehaviorTree + rich Blackboard (BB_PvPAI) steered by C++ threat-curve scoring (target priority), a Director/AIJob layer (capture points, battle routes, rescue), and EQS pathing-grid queries for advance/cover — distinct from PVE's scripted spawn encounters.</div><h2>Asset inventory</h2><ul><li>BehaviorTrees: PvP folder ships reusable BT node BPs (Tasks BTTQ_FindTargetActor, BTTQ_Shoot, BTTQ_SetFocus, BTTQ_SkillFire, BTTQ_ActivateSkillBySlot, BTTQ_SwitchToMainWeapon, BTTQ_Slide, BTTQ_FastFindPoint; Services BTSQ_ChangeMoveState, BTSQ_AccuIdleTime; Decorators BTDQ_IsArmedForce, BTDQ_BBVectorIsSet) + 3 real BehaviorTree test assets (BT_Breakthrough_AnniversaryEgg_*). The live PvP combat tree references BB_PvPAI but its .uasset is not in this folder (cooked-out).</li><li>Blackboard: <code>BB_PvPAI</code> (70+ keys).</li><li>EQS (4): EQS_PvPAdvance, EQS_HangAroundSelf_1500, EQS_Guard_Egg_500, EQSTestPawn.</li><li>Threat/Route curves: Threat (Vehicle/Sight/Hearing/AirHit/TeamHurt), BattleRouteThreat (2Cost, DecayWithDist/Time, GroundVehicle/NormalKill/SceneWeapon), HitRate (LMG/SMG), Vulnerability (CQB/Gunner/Medic/Sniper/Shotgun +Mobile), Rescue (SafetyScore*), Director (BattleLineDistScore).</li><li>CoreLogic: BP_AIPlayerController (casts DFMAIPlayerController; reads Team/Camp/ArmedForceID), BP_PVPAIComponent (/Script/BattleField PvpAIComponent; CalcStickySightThreat, CalcStickyVul, BPCalcVehicleThreatValue). Subsystems: BP_TDMAISubsystem, BP_CampGuardPoint. Navigation: BP_JumpParachuteNavLinker (spline nav-link: parachute/zipline traversal).</li></ul><h2>Main flow</h2><div class="note">Per-tick: refresh threat-scored target -&gt; decide Job vs Combat vs Ability -&gt; position via EQS / move along battle route.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+   Root["BTComposite_Selector (root)"] --> Dead["DFMAIDecorator_IsDead"]
+   Root --> Perceive["BTSQ services<br/>AccuIdleTime / ChangeMoveState"]
+   Perceive --> FindTgt["BTTQ_FindTargetActor<br/>+ C++ threat scoring"]
+   FindTgt --> Threat["PvpAIComponent threat curves<br/>Sight/Hearing/Vehicle/TeamHurt"]
+   Threat --> SetMain["BB G_MainTarget / G_MainTargetDistance"]
+   SetMain --> Decide{"Job vs Combat<br/>(AIJob, AiTargetSelectorMode)"}
+   Decide -->|"objective"| Job["AIJob / TargetCapturePoint<br/>ATargetBattleRoutePoint / CampGuard"]
+   Decide -->|"enemy in range"| Combat["Combat: BTTQ_SetFocus<br/>BTTQ_Shoot / SwitchToMainWeapon"]
+   Decide -->|"ability"| Skill["BTTQ_ActivateSkillBySlot<br/>BTTQ_SkillFire"]
+   Combat --> Reposition["EQS_PvPAdvance (PathingGrid)<br/>NearCover + Dot tests"]
+   Job --> Move["MoveTo BattleRoute / Flag<br/>BP_JumpParachuteNavLinker"]
+   Reposition --> Cover["BB G_EQSFoundCoverPoint<br/>bHasGoodCover / ECoverType"]
+   Combat --> Vehicle{"AVehicleTarget set?"}
+   Vehicle -->|yes| FightVeh["WeaponAgainstVehicle<br/>VehicleThreatCurve"]
+   Combat --> Rescue{"RescuePlayerTarget?"}
+   Rescue -->|yes| DoRescue["bRescuing + SafetyScore curves"]
+</pre></div></div><table><tr><th>Stage</th><th>DF node/asset (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Bot identity</td><td>BP_AIPlayerController casts DFMAIPlayerController; reads GPPlayerState Team/Camp/ArmedForceID</td><td>Bots are real PlayerController/PlayerState (bot-as-player), team/faction aware</td><td>AIController subclass + PlayerState team/faction; spawn as a player team member</td></tr><tr><td>Brain/state</td><td><code>BB_PvPAI</code> (G_MainTarget, AIJob, TargetCapturePoint, ATargetBattleRoutePoint, AVehicleTarget, RescuePlayerTarget, ECoverType, AiTargetSelectorMode)</td><td>Single shared Blackboard holds target/objective/route/cover/rescue</td><td>Recreate BB 1:1 — keys are the contract between BT and the C++ component</td></tr><tr><td>Threat/target select</td><td>BP_PVPAIComponent (PvpAIComponent) CalcStickySightThreat / CalcStickyVul / BPCalcVehicleThreatValue + Threat curves</td><td>Scores each enemy via distance-&gt;threat curves; picks G_MainTarget</td><td>ActorComponent driven by CurveFloat assets (importable)</td></tr><tr><td>Find candidates</td><td><code>BTTQ_FindTargetActor_C</code> (GetAllActorsWithTag)</td><td>Gathers tagged enemies/vehicles into BB</td><td>BTTask BP; reuse tag query</td></tr><tr><td>Engage</td><td><code>BTTQ_SetFocus_C</code>, <code>BTTQ_Shoot</code>, <code>BTTQ_SwitchToMainWeapon</code>, <code>BTTQ_Slide</code></td><td>Aim/fire/weapon-swap/movement micro</td><td>BT Task BPs against new weapon/locomotion API</td></tr><tr><td>Abilities</td><td><code>BTTQ_ActivateSkillBySlot</code>, <code>BTTQ_SkillFire</code></td><td>Hero-ability usage in combat</td><td>BT Tasks calling WR2 ability system</td></tr><tr><td>Positioning</td><td>EQS_PvPAdvance: EnvQueryGenerator_PathingGrid + Dot (not behind enemy/self) + NearCover + PathfindingStraightBatch</td><td>Picks advance point near cover with short path to enemy last-seen</td><td>PathingGrid exists in 5.7; NearCover = DF C++ reimplement; recreate contexts</td></tr><tr><td>Objective layer</td><td>AIJob (/Script/GPAIBase), TargetCapturePoint, BP_CampGuardPoint, ATargetFlag, BP_TDMAISubsystem, Director/BattleLineDistScore</td><td>Director assigns jobs (capture/guard/hold flag) per mode/battle-line</td><td>Director subsystem + Job objects feeding BB; data-drive with curves</td></tr><tr><td>Routes/traversal</td><td>ATargetBattleRoutePoint + BattleRouteThreat curves; BP_JumpParachuteNavLinker (spline nav-link)</td><td>Route choice scored by per-route threat-&gt;cost; parachute/zipline links</td><td>NavLinkProxy + route graph; cost = threat curves</td></tr><tr><td>Vehicle combat</td><td>AVehicleTarget, WeaponAgainstVehicle + VehicleThreatCurve</td><td>Decide to engage vehicles, pick AT weapon (threat 100-&gt;0 over 0-100m)</td><td>rebuild branch; curves importable</td></tr><tr><td>Rescue/assist</td><td>RescuePlayerTarget, bRescuing + Rescue/SafetyScore curves</td><td>Revive teammates when safe (blocked/unblocked x dist/degree)</td><td>BT branch + safety scoring from curves</td></tr></table><h2>Threat-curve &amp; navigation</h2><ul><li>Target selection is curve-scored, not nearest-first. CalcStickySightThreat / CalcStickyVul / BPCalcVehicleThreatValue feed distance into CurveFloats: VehicleThreatCurve 100@0m -&gt; 0@100m; Sight vs SightNotInSight separate visible vs last-known; Hearing adds audio; TeamHurtThreatDecayWithT raises threat of whoever hurt a teammate then decays it. &#x27;Sticky&#x27; = hysteresis so the bot doesn&#x27;t ping-pong targets.</li><li>Per-class Vulnerability curves (Sniper/Gunner/Medic/CQB/Shotgun +Mobile) make a bot&#x27;s own exposure role-dependent — drives push vs hold aggression.</li><li>Route/navigation is threat-cost driven: BattleRouteThreat2Cost converts accumulated route threat into pathing cost; DecayWithDist/Time decay it; NormalKill/SceneWeapon/GroundVehicle curves stamp threat onto routes from recent kills/weapons/vehicles. Bot picks ATargetBattleRoutePoint by lowest threat-cost -&gt; flows along the safest route toward the objective/battle line (Director/BattleLineDistScore, RelayPointsDistanceWeight).</li><li>Tactical micro-positioning = EQS_PvPAdvance (pathing-grid, end near cover, not behind enemy/self, short path to enemy last loc). Special traversal (deploy parachute / zipline) via BB bShouldUseZipline + BP_JumpParachuteNavLinker spline.</li></ul><h2>Notes (PVE vs PvP, node types, caveats)</h2><ul><li>PVE vs PvP: PVE = scripted-encounter / spawn-driven extraction. PvP = mode/objective-driven (TDM via BP_TDMAISubsystem, Breakthrough, capture-point/flag jobs), team+faction aware, simulates a human player (locomotion states, peek/push, slide, ability slots, per-class vulnerability), selects targets+routes by continuous threat-curve scoring. A Director coordinates the squad across the match.</li><li>Engine-default (reuse): Selector, Sequence, Wait, Loop, ForceSuccess, EnvQueryGenerator_PathingGrid, EnvQueryTest_Dot/Distance.</li><li>DF C++ (reimplement): DFMAI* (DFMAIDecorator_IsDead, DFMAIPlayerController), GP* (GPEQSGenerator_RoundArea, GPEnvQueryTest_PathTest, AIJob), PvpAIComponent + threat math, EnvQueryTest_NearCover.</li><li>_C Blueprint (rebuildable): all BTTQ_/BTSQ_/BTDQ_ nodes, BP_AIPlayerController/BP_PVPAIComponent wrappers, BP_CampGuardPoint, BP_TDMAISubsystem.</li><li>Caveat: only 3 anniversary-event test trees are real BehaviorTree objects; the production PvP tree .uasset is not in the folder. .json exposes structure/properties/BB keys/curve values/refs, NOT the scoring formulas inside DFMAI*/PvpAIComponent C++ or the _C event graphs. Rebuild from curve shapes + key names.</li></ul></div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  window.addEventListener("load", async ()=>{
+    try { await mermaid.run({ querySelector:".mermaid" }); } catch(e){ console.error(e); }
+    document.querySelectorAll(".diagram-box").forEach(setupBox);
+  });
+  function setupBox(box){
+    const view = box.querySelector(".diagram-view");
+    const svg = view.querySelector(".mermaid svg");
+    if(!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const baseW = (vb && vb.width) || svg.getBBox().width;
+    const baseH = (vb && vb.height) || svg.getBBox().height;
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    let scale=1;
+    const apply=()=>{ svg.style.width=(baseW*scale)+"px"; svg.style.height=(baseH*scale)+"px"; };
+    box._zoomIn =()=>{ scale=Math.min(scale*1.2,6); apply(); };
+    box._zoomOut=()=>{ scale=Math.max(scale/1.2,0.2); apply(); };
+    box._fit    =()=>{ scale=(view.clientWidth-28)/baseW; apply(); };
+    const f=(view.clientWidth-28)/baseW; scale=Math.max(1, f*1.1); apply();
+    let down=false, sx, sy, sl, st;
+    view.addEventListener("mousedown", e=>{ down=true; sx=e.pageX; sy=e.pageY; sl=view.scrollLeft; st=view.scrollTop; view.classList.add("grabbing"); e.preventDefault(); });
+    window.addEventListener("mousemove", e=>{ if(!down) return; view.scrollLeft=sl-(e.pageX-sx); view.scrollTop=st-(e.pageY-sy); });
+    window.addEventListener("mouseup", ()=>{ down=false; view.classList.remove("grabbing"); });
+    view.addEventListener("wheel", e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); (e.deltaY<0?box._zoomIn:box._zoomOut)(); }, {passive:false});
+  }
+  function zb(btn, fn){ const box=btn.closest(".diagram-box"); if(box && box["_"+fn]) box["_"+fn](); }
+</script>
+</body></html>

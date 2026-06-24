@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Force AI - WR2 Reconstruction Guides</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:12px 0 6px; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  .diagram-view { width:100%; max-height:78vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  .diagram-view.grabbing { cursor:grabbing; }
+  .diagram-view .mermaid { display:inline-block; }
+  .diagram-view .mermaid svg { display:block; pointer-events:none; max-width:none; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>Delta Force AI - WR2 Reconstruction Guides</h1><p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — these are reconstruction guides. · prepared by Wjna · 2026-06-24</p><div class="nav"><a class="cur" href="ai_index.html">Index</a><a class="" href="ai_pve_combat_flow.html">PVE Overview</a><a class="" href="ai_pve_detail.html">PVE Detail</a><a class="" href="ai_pvp.html">PvP</a><a class="" href="ai_squad.html">Squad</a></div></header>
+<div class="wrap"><div class="note">Reconstruction guides for rebuilding Delta Force AI in WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — each page is a flow + node-to-WR2 mapping you can follow to rebuild. Diagrams: drag to pan, +/- or Ctrl+wheel to zoom.</div><h2>Guides</h2><div class="cards"><div class="card"><h3>PVE Infantry - Overview</h3><p>Top-level cover-combat loop: spot -> cover -> fire -> reposition -> evade.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="ai_pve_combat_flow.html">Open</a></div></div><div class="card"><h3>PVE Infantry - Detail</h3><p>Subtree level: in-cover loop, blind-fire, cover acquisition, EQS anatomy, 8-dir move-shoot.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="ai_pve_detail.html">Open</a></div></div><div class="card"><h3>PvP-Mode AI</h3><p>Objective/threat-curve bots: target scoring, jobs, battle routes, rescue, vehicle combat.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="ai_pvp.html">Open</a></div></div><div class="card"><h3>Squad / Group AI</h3><p>Formation slots, advance/sprint, decentralized shared-threat broadcast bus.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="ai_squad.html">Open</a></div></div><div class="card"><h3>Vehicle / Mounted AI</h3><p>HMG / turret / RCV vehicle bot / heli pilot, UseMachineGun tasks. (next)</p><div class="st">status: planned</div><div style="margin-top:10px"><span class="st">coming soon</span></div></div><div class="card"><h3>Boss AI</h3><p>12 per-enemy patterns (Fight/Patrol/Guard/Ambush/Rush/heli). (next)</p><div class="st">status: planned</div><div style="margin-top:10px"><span class="st">coming soon</span></div></div></div></div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  window.addEventListener("load", async ()=>{
+    try { await mermaid.run({ querySelector:".mermaid" }); } catch(e){ console.error(e); }
+    document.querySelectorAll(".diagram-box").forEach(setupBox);
+  });
+  function setupBox(box){
+    const view = box.querySelector(".diagram-view");
+    const svg = view.querySelector(".mermaid svg");
+    if(!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const baseW = (vb && vb.width) || svg.getBBox().width;
+    const baseH = (vb && vb.height) || svg.getBBox().height;
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    let scale=1;
+    const apply=()=>{ svg.style.width=(baseW*scale)+"px"; svg.style.height=(baseH*scale)+"px"; };
+    box._zoomIn =()=>{ scale=Math.min(scale*1.2,6); apply(); };
+    box._zoomOut=()=>{ scale=Math.max(scale/1.2,0.2); apply(); };
+    box._fit    =()=>{ scale=(view.clientWidth-28)/baseW; apply(); };
+    const f=(view.clientWidth-28)/baseW; scale=Math.max(1, f*1.1); apply();
+    let down=false, sx, sy, sl, st;
+    view.addEventListener("mousedown", e=>{ down=true; sx=e.pageX; sy=e.pageY; sl=view.scrollLeft; st=view.scrollTop; view.classList.add("grabbing"); e.preventDefault(); });
+    window.addEventListener("mousemove", e=>{ if(!down) return; view.scrollLeft=sl-(e.pageX-sx); view.scrollTop=st-(e.pageY-sy); });
+    window.addEventListener("mouseup", ()=>{ down=false; view.classList.remove("grabbing"); });
+    view.addEventListener("wheel", e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); (e.deltaY<0?box._zoomIn:box._zoomOut)(); }, {passive:false});
+  }
+  function zb(btn, fn){ const box=btn.closest(".diagram-box"); if(box && box["_"+fn]) box["_"+fn](); }
+</script>
+</body></html>

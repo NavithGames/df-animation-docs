@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF PVE Infantry AI - Cover-Combat Detail (subtree level)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:12px 0 6px; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  .diagram-view { width:100%; max-height:78vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  .diagram-view.grabbing { cursor:grabbing; }
+  .diagram-view .mermaid { display:inline-block; }
+  .diagram-view .mermaid svg { display:block; pointer-events:none; max-width:none; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF PVE Infantry AI - Cover-Combat Detail (subtree level)</h1><p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes, so they are <b>not importable</b> — these are reconstruction guides. · prepared by Wjna · 2026-06-24</p><div class="nav"><a class="" href="ai_index.html">Index</a><a class="" href="ai_pve_combat_flow.html">PVE Overview</a><a class="cur" href="ai_pve_detail.html">PVE Detail</a><a class="" href="ai_pvp.html">PvP</a><a class="" href="ai_squad.html">Squad</a></div></header>
+<div class="wrap"><div class="note">Subtree-level detail of the PVE infantry cover-combat. This is the "linked subtrees + customizable behavior per situation" layer: a cover EQS pipeline feeds a tagged cover stance, then a difficulty-weighted in-cover loop cycles idle / peek / blind-fire / reposition, dispatching to weapon-class shoot subtrees. See <a href="ai_pve_combat_flow.html">PVE Overview</a> for the top-level loop.</div><h2>1. In-cover behavior loop</h2><div class="note">BT_Cover_IdleAndActing / BT_SOL_Shoot_Cover — cycles idle-acting / peek / blind-fire / release while holding cover.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  R["BT_SOL_Shoot_Cover ROOT<br/>Selector_0 (deco: ForceSuccess + RandomTimeLimit)"]
+  R --> L["Selector_3 (deco: Loop)<br/>== the in-cover cycle =="]
+  L --> W["BTTask_Wait<br/>(deco: CoverCheckCanShootTarget_C)"]
+  L --> SEQ["Sequence_6"]
+  SEQ --> CUR["BTTask_SetCurTimeToBB_C"]
+  SEQ --> RUN["GPBTTask_RunBlackboardBehavior<br/>-> BT_SOLShoot_HSBasic_AR<br/>(deco: ForceSuccess)"]
+  IA["BT_Cover_IdleAndActing ROOT<br/>Selector_4"]
+  IA -->|"JudgeCoverType_C middle"| S11["Sequence_11"]
+  IA -->|"JudgeCoverType_C right"| S6["Sequence_6"]
+  IA -->|"JudgeCoverType_C x3 left"| S1["Sequence_1"]
+  S11 --> RQ["RequestCoverStateSimple_C<br/>(deco ForceSuccess + CheckCoverState_C)"]
+  RQ --> CT["SetCurTimeToBB_C"]
+  CT --> SP["SimpleParallel_2<br/>(Wait + acting Sequence_8)"]
+  SP --> SB["SetBoolValue_C"]
+  S8["Sequence_8 background"] --> WB["Wait"]
+  S8 --> ACT1["Selector_6 idle-acting<br/>(deco ForceSuccess + JudgeCoverBehaviorProbability_C)"]
+  S8 --> ACT2["Selector_2 idle-acting<br/>(deco ForceSuccess + Random_C)"]
+  ACT1 --> PA["DFMAITask_PlaySpecialActing_Name x N<br/>(each deco Random_C)"]
+</pre></div></div><table><tr><th>Element</th><th>DF node (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Loop wrapper</td><td><code>BTDecorator_Loop_3</code> on Selector_3, <code>RandomTimeLimit_1</code> + <code>ForceSuccess_1</code> on root</td><td>Repeats in-cover cycle until a randomized time budget expires</td><td>Engine <code>Loop</code>+<code>ForceSuccess</code> exist; RandomTimeLimit = custom decorator (random duration -&gt; abort)</td></tr><tr><td>Shoot-from-cover gate</td><td><code>BTDecorator_CoverCheckCanShootTarget_C</code> on Wait child</td><td>If can&#x27;t shoot from cover, just Wait; else fall to shoot subtree</td><td>DF _C BP wrapping LOS+cover-geometry test -&gt; rebuild as Decorator LOS test</td></tr><tr><td>Run sub-behavior</td><td><code>GPBTTask_RunBlackboardBehavior</code> -&gt; <code>BT_SOLShoot_HSBasic_AR</code></td><td>Dispatches to a weapon-class shoot subtree chosen via blackboard</td><td>WR2 <code>RunBehaviorDynamic</code> (BB-key selectable subtree)</td></tr><tr><td>Cover-type branch</td><td><code>BTDecorator_JudgeCoverType_C</code> (CoverDir enum, IsMiddleCover)</td><td>Routes to middle/right/left cover variant</td><td>_C BP over DFMCoverContext -&gt; decorator reading a CoverType BB enum</td></tr><tr><td>Cover stance request</td><td><code>BTTask_RequestCoverStateSimple_C</code> base <code>DFMAITask_RequestToCoverState</code></td><td>Asks motion system to enter a tagged cover state</td><td>DF C++ -&gt; WR2 montage/state request + GameplayTag</td></tr><tr><td>Idle-acting</td><td><code>SimpleParallel</code> Wait + <code>DFMAITask_PlaySpecialActing_Name</code>, gated by <code>JudgeCoverBehaviorProbability_C</code> + <code>Random_C</code></td><td>While holding cover, randomly plays idle/acting anims weighted by difficulty</td><td>montage task + weighted-random decorators (difficulty data asset)</td></tr></table><h2>2. Blind-fire detail</h2><div class="note">BT_Cover_BlindShoot + CalcCoverBlindShootLoc/Direction — fire from cover edge without fully exposing.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  R["BT_Cover_BlindShoot ROOT<br/>Sequence_8"]
+  R --> CP["BTTask_CopyCoverLocToBB_C"]
+  CP --> S4["Selector_4 (svc: IgnoreHistoryLoc_C)"]
+  S4 -->|"JudgeCoverType_C #2"| S0["Sequence_0"]
+  S4 -->|"JudgeCoverType_C #0"| S1["Sequence_1"]
+  S0 --> CALC["BTTask_CalcCoverBlindShootLoc_C<br/>(IsLeft, LeftOffset 300,600,0 / RightOffset 300,-600,0)"]
+  CALC --> RQ["RequestCoverStateSimple_C (deco ForceSuccess)"]
+  RQ --> SEL0["Selector_0 (svc SetFocus_C)"]
+  SEL0 -->|"JudgeCoverBehaviorProbability_C"| SEL2["Selector_2"]
+  SEL0 --> SPP["SimpleParallel_3 fallback"]
+  SEL2 -->|"Random_C"| SP0["SimpleParallel_0"]
+  SP0 --> PA["DFMAITask_PlaySpecialActing_Name<br/>(lean/peek anim)"]
+  SP0 --> SH["Sequence_2: Wait -> DFMAITask_Shoot"]
+</pre></div></div><table><tr><th>Element</th><th>DF node (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Snapshot cover loc</td><td><code>BTTask_CopyCoverLocToBB_C</code> (LocationKey)</td><td>Copies current cover point world loc to BB</td><td>BP task: cover context -&gt; BB vector</td></tr><tr><td>Blind-shoot loc</td><td><code>BTTask_CalcCoverBlindShootLoc_C</code> IsLeft, LeftOffset(300,600,0), RightOffset(300,-600,0)</td><td>Computes a fire-from-edge point by offsetting actor transform</td><td>actor transform + side-offset vector -&gt; BB (copy the offsets)</td></tr><tr><td>Shoot direction</td><td><code>BTTask_CalcCoverShootDirection</code> (FireLocationOffset 70, Const 90)</td><td>Aim direction + jitter per cover type (expose/peek/lean/blind)</td><td>cover-type enum -&gt; direction + random spread</td></tr><tr><td>Yaw helper</td><td><code>BTTask_GetYawByCoverDirection</code> (center/left/right -&gt; +/- yaw)</td><td>Cover direction vector -&gt; body yaw per side</td><td>BP pure math task</td></tr><tr><td>Fire</td><td><code>DFMAITask_Shoot</code> in Sequence_2 (Wait -&gt; Shoot), parallel with <code>PlaySpecialActing_Name</code></td><td>Blind-fires for a Wait window while playing lean/peek montage</td><td>WR2 fire task; SimpleParallel keeps anim + fire concurrent</td></tr><tr><td>Behavior weighting</td><td><code>JudgeCoverBehaviorProbability_C</code> weights FullExpose/LyingBlindFire/BlindFire/Peek/LeanFire from DFMAIDiffcultyComponent</td><td>Picks blind vs peek vs lean by difficulty-scaled weights</td><td>decorator: difficulty data asset -&gt; weighted-random</td></tr><tr><td>Focus</td><td>svc <code>SetFocus_C</code>, <code>IgnoreHistoryLoc_C</code></td><td>Keep facing target / ignore stale enemy loc during blind fire</td><td>BTService updating focus/target-loc source</td></tr></table><h2>3. Cover acquisition pipeline</h2><div class="note">JudgeCoverType -&gt; RunCoverEQS -&gt; MoveToCover -&gt; RequestCoverState -&gt; ActiveNewAICoverContext. Evidence: BT_Boss03_Fight uses RunCoverEQS_C x4, MoveToCover_C x3, RequestCoverStateSimple_C x8, each gated by JudgeCoverType_C.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  A["BTTask_RunCoverEQS_C<br/>CoverSearchRadius 1000, CoverMaxPathLen 3000<br/>-> EQSTargetLocation BBKey"]
+  A --> B["BTTask_ActiveNewAICoverContext_C<br/>(cast DFMAIController, activate cover ctx)"]
+  B --> C["BTTask_MoveToCover_C<br/>base DFMAITask_MoveToCover<br/>(bTryToCoverStand, bIsLeanArrival, bIsLeft/RightCover)"]
+  C --> D["BTDecorator_JudgeCoverType_C<br/>(middle/left/right route)"]
+  D --> E["BTTask_RequestCoverStateSimple_C<br/>(Preset -> GameplayTag stance)"]
+  E --> F["in-cover loop (subsystems 1 and 2)"]
+  S["svc ReleaseCoverWhenLeave (Interval 1.0)"] -. monitors .-> F
+  S2["svc CoverInterrupt (threat angle/dist)"] -. aborts .-> F
+</pre></div></div><table><tr><th>Element</th><th>DF node (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Find cover (EQS)</td><td><code>BTTask_RunCoverEQS_C</code> (CoverSearchRadius 1000, CoverMaxPathLen 3000)</td><td>Runs cover EQS, stores best cover point to BB, tracks fail count</td><td>BP task running the rebuilt cover EQS -&gt; write cover point+normal to BB</td></tr><tr><td>Activate context</td><td><code>BTTask_ActiveNewAICoverContext_C</code> (casts DFMAIController)</td><td>Registers chosen cover slot in the AI cover manager</td><td>DFMAICoverManager -&gt; WR2 cover-reservation subsystem (claim/release)</td></tr><tr><td>Move</td><td><code>BTTask_MoveToCover_C</code> base <code>DFMAITask_MoveToCover</code></td><td>Paths to cover, arrives in lean/stand orientation</td><td>WR2 MoveTo + arrival montage; left/right from cover normal</td></tr><tr><td>Route by type</td><td><code>BTDecorator_JudgeCoverType_C</code></td><td>Branches stance request by middle/left/right cover</td><td>Decorator over cover-type BB enum</td></tr><tr><td>Enter stance</td><td><code>BTTask_RequestCoverStateSimple_C</code> (CoverStatePreset)</td><td>Sets the tagged cover motion state</td><td>WR2 stance request + tag</td></tr><tr><td>Leave/abort</td><td><code>BTService_ReleaseCoverWhenLeave</code> (1.0s), <code>BTService_CoverInterrupt</code></td><td>Releases slot on exit; interrupts cover when threat angle/dist crosses threshold</td><td>services: distance-check release + threat-angle abort</td></tr></table><h2>4. EQS internal anatomy</h2><div class="note">Almost every combat position decision is EQS. All cover/retreat/reposition/evade queries share a RoundArea generator + an ordered test chain. Build these first — ~80% of combat quality.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  G["GPEQSGenerator_RoundArea (DF C++)<br/>RoundRadius, LayerNum, IncreaseRate,<br/>GenerateAround = Querier / EnemyHistoryLoc"]
+  G --> T1["1. GPEnvQueryTest_PathTest (Filter)<br/>nav-reachable"]
+  T1 --> T2["2. BasicCoverCheck / BasicVisibilityCheck (Score)<br/>vs EnemyTarget"]
+  T2 --> T3["3. PathTest PathLength (Score, negative)<br/>prefer short path"]
+  T3 --> T4["4. AvoidOtherBot (Score x2)<br/>spread squad"]
+  T4 --> T5["5. DistToZone (Score, negative)<br/>stay in bounds"]
+  T5 --> T6["6. Dot / NavRayCheck / AvoidGrenade<br/>(query-specific)"]
+</pre></div></div><table><tr><th>EQS query</th><th>Generator</th><th>Tests (in order)</th><th>Purpose</th><th>WR2 rebuild</th></tr><tr><td>FindCoverNearBy_1500</td><td>RoundArea R=1500, Layers=4</td><td>PathTest(Filter) -&gt; BasicCoverCheck(x3) -&gt; SurroundingVisibilityCheck -&gt; Distance(-1.5) -&gt; AvoidOtherBot(x2) -&gt; DistToZone(-2)</td><td>Cover near self that breaks LOS to enemy, away from allies/edge</td><td>RoundArea ring gen; cover/vis = Trace + custom cover-quality test</td></tr><tr><td>CoverArroundEnemy_1200</td><td>RoundArea R=1200, around EnemyHistoryLoc</td><td>PathTest(Filter) -&gt; BasicCoverCheck(x3) -&gt; SurroundingVisibilityCheck -&gt; PathLength(-4) -&gt; AvoidOtherBot(x2) -&gt; DistToZone(-2)</td><td>Flank: cover ringed around enemy last-known loc</td><td>RoundArea + enemy-history context; heavy path-cost</td></tr><tr><td>MoveBack_800</td><td>RoundArea R=700, bAvoidClosePathToTarget</td><td>PathTest(Filter) -&gt; BasicVisibilityCheck(x2) -&gt; Distance vs MainTarget -&gt; AvoidOtherBot(x2) -&gt; DistToZone(-1) -&gt; NavRayCheck(x1.5) -&gt; Dot(max -0.5)</td><td>Retreat: still see target but farther/behind</td><td>RoundArea + engine Dot + NavRayCheck reimplement</td></tr><tr><td>TrimPos_600</td><td>RoundArea R=700, Rate=1.5</td><td>PathTest(Filter) -&gt; BasicVisibilityCheck(x1.5) -&gt; PathLength(-1,min300) -&gt; DistToZone(-2)</td><td>Micro-reposition (small ring) keeping LOS</td><td>Small RoundArea; engine PathLength test</td></tr><tr><td>AvoidGrenade</td><td>RoundArea minimal</td><td>PathLength(max1500) -&gt; BasicCoverCheck vs AlertTarget(x2) -&gt; AvoidGrenade(x5, radius1000) -&gt; Dot2D(min0.5) -&gt; PathTest</td><td>Flee grenade: max distance from source within reach</td><td>AvoidGrenade = distance-from-grenade-actor score</td></tr><tr><td>CanShootTarget_1200</td><td>RoundArea R=1200, Layers=5</td><td>PathTest(Filter) -&gt; BasicVisibilityCheck(x2) -&gt; PathLength(-2) -&gt; AvoidOtherBot(x2) -&gt; DistToZone(-2)</td><td>Position with clear LOS to fire on target</td><td>RoundArea + visibility(trace) + path-cost</td></tr></table><h2>5. 8-direction move-and-shoot</h2><div class="note">BT_Child_8DirMove_Shoot — strafe to an EQS-chosen directional point while firing in parallel.</div><div class="diagram-box"><div class="diagram-toolbar"><button onclick="zb(this,'zoomIn')">＋ Zoom in</button><button onclick="zb(this,'zoomOut')">－ Zoom out</button><button onclick="zb(this,'fit')">⤢ Fit width</button><span>Drag to pan · ＋/－ or Ctrl+wheel to zoom</span></div><div class="diagram-view"><pre class="mermaid">
+flowchart TD
+  R["BT_Child_8DirMove_Shoot ROOT<br/>BTComposite_RandomSelect<br/>PercentageOfBranch = [15, 15, 70]"]
+  R -->|15%| P0["SimpleParallel_0 (Run)"]
+  R -->|15%| P3["SimpleParallel_3 (Run+Crouch)"]
+  R -->|70%| P8["SimpleParallel_8 (Walk)"]
+  P0 --> M0["DFMAITask_AdvancedMoveTo<br/>TargetLocationBBKey = G_EQSLocation<br/>(svc WithMotionPlanFilter)"]
+  P0 --> B0["BTTask_RunBehavior -> BT_ParallelMoveRun (shoot)"]
+  P3 --> M3["DFMAITask_AdvancedMoveTo"]
+  P3 --> B3["BTTask_RunBehavior -> BT_ParallelMoveRun"]
+  P8 --> M8["DFMAITask_AdvancedMoveTo"]
+  P8 --> B8["BTTask_RunBehavior -> BT_ParallelMoveRun"]
+</pre></div></div><table><tr><th>Element</th><th>DF node (evidence)</th><th>What it does</th><th>WR2 rebuild</th></tr><tr><td>Random branch</td><td><code>BTComposite_RandomSelect</code> PercentageOfBranch [15,15,70]</td><td>Picks one of 3 move-shoot variants by weight (direction set fed via G_EQSLocation)</td><td>weighted-random composite</td></tr><tr><td>Move</td><td><code>DFMAITask_AdvancedMoveTo</code> (G_EQSLocation, MotionState Run)</td><td>Strafes/moves to EQS-chosen point at run speed</td><td>WR2 MoveTo with locomotion-state tag</td></tr><tr><td>Motion filter</td><td>svc <code>DFMAIService_WithMotionPlanFilter</code></td><td>Constrains motion-plan during the move</td><td>nav/motion filter service or omit</td></tr><tr><td>Shoot in parallel</td><td><code>BTTask_RunBehavior</code> -&gt; <code>BT_ParallelMoveRun</code></td><td>Runs shoot subtree concurrently with move</td><td>engine RunBehavior; keep SimpleParallel(move+shoot)</td></tr><tr><td>Target source</td><td>BB <code>G_EQSLocation</code> (written by EQS tasks)</td><td>Directional destination feeding all branches</td><td>WR2 BB vector from rebuilt EQS</td></tr></table><h2>Notes (node types, blackboard, caveats)</h2><ul><li>Engine-default (exist in 5.7, reuse): <code>Selector</code>, <code>Sequence</code>, <code>SimpleParallel</code>, <code>Wait</code>, <code>RunBehavior</code>, <code>ForceSuccess</code>, <code>Loop</code>.</li><li>DF C++ (no code in WR2, MUST reimplement): <code>GPEQSGenerator_RoundArea</code>, <code>GPEnvQueryTest_PathTest</code>, <code>EnvQueryTest_BasicCoverCheck/BasicVisibilityCheck/SurroundingVisibilityCheck/AvoidOtherBot/DistToZone/AvoidGrenade/NavRayCheck</code>, <code>DFMAITask_AdvancedMoveTo/MoveToCover/RequestToCoverState/Shoot/PlaySpecialActing_Name</code>, <code>DFMAIService_WithMotionPlanFilter</code>, <code>GPBTTask_RunBlackboardBehavior</code>, <code>BTComposite_RandomSelect</code>, <code>RandomTimeLimit</code>, plus runtime systems DFMCoverContext / DFMAICoverManager / DFMAIThreatRecordComponent / DFMAIDiffcultyComponent.</li><li>_C Blueprint nodes (logic cooked = only defaults extracted, behavior inferred from names): RunCoverEQS_C, MoveToCover_C, RequestCoverStateSimple_C, ActiveNewAICoverContext_C, CalcCoverBlindShootLoc_C, CopyCoverLocToBB_C, SetCurTimeToBB_C, SetBoolValue_C, JudgeCoverType_C, JudgeCoverBehaviorProbability_C, CheckCoverState_C, CoverCheckCanShootTarget_C, Random_C, SetFocus_C, IgnoreHistoryLoc_C.</li><li>Blackboard <code>BB_AI</code> (AI2/DecisionMaking/BehaviorTree/BB_AI). Keys: <code>G_EQSLocation</code>, <code>G_MainTarget</code>, <code>G_MainTargetChanged</code>, <code>G_MainTargetDistance</code>, <code>G_HasAimedTargetKey</code>, <code>CoverLocation</code>, <code>CoverDirection</code>, <code>CoverTypeKey</code>, <code>CoverEqsFailCountKey</code>, <code>InterruptKey</code>.</li><li>In-cover behavior set is difficulty-weighted: FullExpose / LyingBlindFire / BlindFire / Peek / LeanFire via <code>DFMAIDiffcultyComponent</code> — AI aggression scales with difficulty. Replicate as a difficulty data asset feeding the weighted-random decorators. (This is the &#x27;customizable behavior per situation / linked subtrees&#x27; layer.)</li><li>Values read directly: RandomSelect [15,15,70]; BlindShoot offsets 300,600,0 / 300,-600,0; RunCoverEQS radius 1000 / maxpath 3000. Some EQS names overstate radius (MoveBack_800 actually R=700, TrimPos_600 R=700). Composite/decorator order = json child array order (top-&gt;bottom = eval order).</li></ul></div>
+<script>
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  window.addEventListener("load", async ()=>{
+    try { await mermaid.run({ querySelector:".mermaid" }); } catch(e){ console.error(e); }
+    document.querySelectorAll(".diagram-box").forEach(setupBox);
+  });
+  function setupBox(box){
+    const view = box.querySelector(".diagram-view");
+    const svg = view.querySelector(".mermaid svg");
+    if(!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const baseW = (vb && vb.width) || svg.getBBox().width;
+    const baseH = (vb && vb.height) || svg.getBBox().height;
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    let scale=1;
+    const apply=()=>{ svg.style.width=(baseW*scale)+"px"; svg.style.height=(baseH*scale)+"px"; };
+    box._zoomIn =()=>{ scale=Math.min(scale*1.2,6); apply(); };
+    box._zoomOut=()=>{ scale=Math.max(scale/1.2,0.2); apply(); };
+    box._fit    =()=>{ scale=(view.clientWidth-28)/baseW; apply(); };
+    const f=(view.clientWidth-28)/baseW; scale=Math.max(1, f*1.1); apply();
+    let down=false, sx, sy, sl, st;
+    view.addEventListener("mousedown", e=>{ down=true; sx=e.pageX; sy=e.pageY; sl=view.scrollLeft; st=view.scrollTop; view.classList.add("grabbing"); e.preventDefault(); });
+    window.addEventListener("mousemove", e=>{ if(!down) return; view.scrollLeft=sl-(e.pageX-sx); view.scrollTop=st-(e.pageY-sy); });
+    window.addEventListener("mouseup", ()=>{ down=false; view.classList.remove("grabbing"); });
+    view.addEventListener("wheel", e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); (e.deltaY<0?box._zoomIn:box._zoomOut)(); }, {passive:false});
+  }
+  function zb(btn, fn){ const box=btn.closest(".diagram-box"); if(box && box["_"+fn]) box["_"+fn](); }
+</script>
+</body></html>
