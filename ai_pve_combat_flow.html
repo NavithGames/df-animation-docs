@@ -21,8 +21,8 @@
   .diagram-toolbar button:hover { background:#343b46; }
   #diagram { width:100%; max-height:82vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
   #diagram.grabbing { cursor:grabbing; }
-  #diagram .mermaid { transform-origin:top left; transition:transform .08s linear; display:inline-block; min-width:100%; }
-  #diagram .mermaid svg { display:block; pointer-events:none; }
+  #diagram .mermaid { display:inline-block; }
+  #diagram .mermaid svg { display:block; pointer-events:none; max-width:none; }
   table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
   th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
   th { background:#262b34; color:var(--accent2); }
@@ -141,20 +141,33 @@ flowchart TD
 
 </div>
 <script>
-  // useMaxWidth:true → mermaid sizes the SVG to 100% of the container width (always readable,
-  // never a tiny center blob). Zoom is done with a CSS transform on the .mermaid wrapper.
-  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:true, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+  // useMaxWidth:false → SVG keeps its natural size. Zoom changes the SVG's REAL pixel size
+  // (style width/height), so the scroll container gets actual overflow in BOTH axes → drag pans
+  // left/right AND up/down. (CSS transform:scale does NOT create scroll room, which is why
+  // horizontal drag did not work before.)
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
 
-  let scale = 1;
-  function wrap(){ return document.querySelector("#diagram .mermaid"); }
-  function applyScale(){ const w=wrap(); if(w) w.style.transform = "scale("+scale+")"; }
-  function zoomIn(){ scale = Math.min(scale*1.25, 6); applyScale(); }
-  function zoomOut(){ scale = Math.max(scale/1.25, 0.4); applyScale(); }
-  function resetZoom(){ scale = 1; applyScale(); }
+  let baseW=0, baseH=0, scale=1;
+  function svgEl(){ return document.querySelector("#diagram .mermaid svg"); }
+  function applyScale(){ const s=svgEl(); if(!s||!baseW) return; s.style.width=(baseW*scale)+"px"; s.style.height=(baseH*scale)+"px"; }
+  function zoomIn(){ scale=Math.min(scale*1.2, 6); applyScale(); }
+  function zoomOut(){ scale=Math.max(scale/1.2, 0.2); applyScale(); }
+  function pad(){ return 28; }
+  function fitWidth(){ const box=document.getElementById("diagram"); scale=(box.clientWidth-pad())/baseW; applyScale(); }
+  function initView(){ const box=document.getElementById("diagram"); const fit=(box.clientWidth-pad())/baseW; scale=Math.max(1, fit*1.2); applyScale(); }
+  // toolbar "Fit width" button uses this
+  function resetZoom(){ fitWidth(); }
 
   window.addEventListener("load", async ()=>{
     await mermaid.run({ querySelector:".mermaid" });
-    resetZoom();
+    const s=svgEl();
+    if(s){
+      const vb=s.viewBox && s.viewBox.baseVal;
+      baseW=(vb && vb.width) || s.getBBox().width;
+      baseH=(vb && vb.height) || s.getBBox().height;
+      s.removeAttribute("width"); s.removeAttribute("height");
+      initView();
+    }
     setupDragPan();
     setupWheelZoom();
   });
