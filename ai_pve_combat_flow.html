@@ -19,9 +19,10 @@
   .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
   .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
   .diagram-toolbar button:hover { background:#343b46; }
-  #diagram { width:100%; max-height:82vh; overflow:auto; padding:14px; background:#191c22; }
+  #diagram { width:100%; max-height:82vh; overflow:auto; padding:14px; background:#191c22; cursor:grab; user-select:none; }
+  #diagram.grabbing { cursor:grabbing; }
   #diagram .mermaid { transform-origin:top left; transition:transform .08s linear; display:inline-block; min-width:100%; }
-  #diagram .mermaid svg { display:block; }
+  #diagram .mermaid svg { display:block; pointer-events:none; }
   table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
   th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
   th { background:#262b34; color:var(--accent2); }
@@ -43,13 +44,13 @@
     <b>One line:</b> Spot enemy → lock target → <b>find cover & move → blind/aimed fire from cover → reposition if bad spot → evade on danger (grenade / air strike)</b>, looped. If no enemy → patrol / idle.
   </div>
 
-  <h2>1. Main Flowchart <span class="tag">fits page width · use ＋/－ to zoom</span></h2>
+  <h2>1. Main Flowchart <span class="tag">drag to pan · ＋/－ or Ctrl+wheel to zoom</span></h2>
   <div class="diagram-box">
     <div class="diagram-toolbar">
       <button onclick="zoomIn()">＋ Zoom in</button>
       <button onclick="zoomOut()">－ Zoom out</button>
       <button onclick="resetZoom()">⤢ Fit width</button>
-      <span>Fits page width by default. Use ＋/－ to zoom; the box scrolls.</span>
+      <span>Drag to pan · ＋/－ or Ctrl+wheel to zoom · scroll to move.</span>
     </div>
     <div id="diagram">
 <pre class="mermaid">
@@ -154,7 +155,37 @@ flowchart TD
   window.addEventListener("load", async ()=>{
     await mermaid.run({ querySelector:".mermaid" });
     resetZoom();
+    setupDragPan();
+    setupWheelZoom();
   });
+
+  // drag to pan (grab the diagram and move it)
+  function setupDragPan(){
+    const box = document.getElementById("diagram");
+    let down=false, sx, sy, sl, st, moved=false;
+    box.addEventListener("mousedown", e=>{
+      down=true; moved=false; sx=e.pageX; sy=e.pageY; sl=box.scrollLeft; st=box.scrollTop;
+      box.classList.add("grabbing"); e.preventDefault();
+    });
+    window.addEventListener("mousemove", e=>{
+      if(!down) return;
+      const dx=e.pageX-sx, dy=e.pageY-sy;
+      if(Math.abs(dx)+Math.abs(dy)>3) moved=true;
+      box.scrollLeft = sl-dx; box.scrollTop = st-dy;
+    });
+    window.addEventListener("mouseup", ()=>{ down=false; box.classList.remove("grabbing"); });
+    box.addEventListener("mouseleave", ()=>{ /* keep panning while button held outside */ });
+  }
+
+  // Ctrl/Cmd + wheel = zoom; plain wheel = scroll (default)
+  function setupWheelZoom(){
+    const box = document.getElementById("diagram");
+    box.addEventListener("wheel", e=>{
+      if(!(e.ctrlKey||e.metaKey)) return;
+      e.preventDefault();
+      if(e.deltaY<0) zoomIn(); else zoomOut();
+    }, { passive:false });
+  }
 </script>
 </body>
 </html>
