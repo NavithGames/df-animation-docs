@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF PVE Infantry AI — Combat Logic Flow (WR2 Rebuild Guide)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 80px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); }
+  .diagram-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; }
+  .diagram-toolbar { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+  .diagram-toolbar button { background:#2a2f38; color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .diagram-toolbar button:hover { background:#343b46; }
+  #diagram { width:100%; height:74vh; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12.5px; color:#ffd9a0; }
+  ul { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; }
+  .tag { display:inline-block; background:#2a2f38; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-size:11.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Delta Force — PVE Infantry AI · Combat Logic Flow</h1>
+  <p>Rebuild blueprint for WR2 (UE5.7). DF behavior trees are cooked + depend on DF C++ nodes → not directly importable. This is a <b>reconstruction guide</b>, not an asset port. · prepared by Wjna · 2026-06-24</p>
+</header>
+<div class="wrap">
+
+  <div class="note">
+    <b>One line:</b> Spot enemy → lock target → <b>find cover & move → blind/aimed fire from cover → reposition if bad spot → evade on danger (grenade / air strike)</b>, looped. If no enemy → patrol / idle.
+  </div>
+
+  <h2>1. Main Flowchart <span class="tag">drag to pan · scroll to zoom</span></h2>
+  <div class="diagram-box">
+    <div class="diagram-toolbar">
+      <button onclick="pz&&pz.zoomIn()">＋ Zoom in</button>
+      <button onclick="pz&&pz.zoomOut()">－ Zoom out</button>
+      <button onclick="pz&&pz.resetZoom()&&pz.center()">⟳ Reset</button>
+      <button onclick="pz&&pz.fit()&&pz.center()">⤢ Fit</button>
+      <span>Interactive — drag to pan, scroll wheel to zoom.</span>
+    </div>
+    <div id="diagram">
+<pre class="mermaid">
+flowchart TD
+    Root(["AIController runs Root BT"]) --> SVC["Root Service (ticks always)<br/>BTService_Fight_PVEUpdateMainTartget<br/>Refresh MainTarget every tick (threat / distance / LoS)"]
+    SVC --> TOP{"Top-level Selector<br/>priority branching"}
+
+    TOP -->|"P1: survival interrupt"| SURV{"Danger detected?"}
+    SURV -->|"grenade nearby"| AG["EQS_AvoidGrenade<br/>pick safe spot, move out"]
+    SURV -->|"hit from air"| AH["EQS_AirHit_Escape<br/>pick escape spot, move"]
+    SURV -->|"no danger"| FIGHT
+
+    TOP -->|"P2: combat"| FIGHT{"BTDecorator_PVEFightCheck<br/>Has MainTarget and engage conditions met?"}
+    FIGHT -->|"No"| PATROL["Non-combat: patrol / idle / guard"]
+    FIGHT -->|"Yes"| COVERJUDGE{"Cover decision<br/>JudgeCoverBehaviorProbability<br/>JudgeCoverType / CoverDetect"}
+
+    COVERJUDGE -->|"use cover"| FINDCOVER["BTTask_RunCoverEQS<br/>EQS_PVEAI_FindCoverNearBy_1500<br/>EQS_PVEAI_Fight_CoverArroundEnemy"]
+    FINDCOVER --> MOVECOVER["BTTask_MoveToCover<br/>BTTask_RequestCoverStateSimple<br/>enter cover state"]
+    MOVECOVER --> INCOVER[["In-cover subtree<br/>BT_Cover_IdleAndActing"]]
+
+    INCOVER --> CANSHOOT{"BTDecorator_CoverCheckCanShootTarget<br/>Can fire?"}
+    CANSHOOT -->|"blind fire"| BLIND["BT_Cover_BlindShoot<br/>CalcCoverBlindShootLoc/Direction<br/>BTTQ_Shoot"]
+    CANSHOOT -->|"aimed fire"| PEEK["Lean out of cover, aimed shot"]
+    CANSHOOT -->|"target out of sight"| RELEASE["BTService_ReleaseCoverWhenLeave<br/>release cover"]
+
+    COVERJUDGE -->|"direct engage"| DIRECT["BTTask_BaseFightTarget"]
+    DIRECT --> SHOOTCHK{"CheckCanShootTarget<br/>CheckShootVisiblity"}
+    SHOOTCHK -->|"ok"| SHOOT["BTTQ_Shoot fire"]
+    SHOOTCHK -->|"blocked / bad pos"| REPOS
+
+    BLIND --> REPOS{"Reposition needed?"}
+    PEEK --> REPOS
+    RELEASE --> REPOS
+    SHOOT --> REPOS
+    REPOS -->|"fine-tune"| TRIM["EQS TrimPos 300/600/1500<br/>better firing spot, same range band"]
+    REPOS -->|"too close"| BACK["EQS MoveBack 500/800/1500<br/>fall back"]
+    REPOS -->|"flank / surround"| AROUND["EQS CoverArroundEnemy<br/>cover around enemy, side pressure"]
+    REPOS -->|"move & shoot"| EIGHT["BT_Child_8DirMove_Shoot<br/>8-direction strafe fire"]
+
+    TRIM --> LOOP(["Loop: back to Service"])
+    BACK --> LOOP
+    AROUND --> LOOP
+    EIGHT --> LOOP
+    AG --> LOOP
+    AH --> LOOP
+    PATROL --> LOOP
+</pre>
+    </div>
+  </div>
+
+  <h2>2. Node-by-node + WR2 implementation mapping</h2>
+  <table>
+    <tr><th>Stage</th><th>DF node (evidence)</th><th>What it does</th><th>What to build in WR2</th></tr>
+    <tr><td>Target update</td><td><code>BTService_Fight_PVEUpdateMainTartget</code> (BP)</td><td>Each tick scores enemy candidates → sets Blackboard <code>MainTarget</code> (threat / distance / LoS)</td><td>One BTService BP. Iterate threat list, store top-scored target in BB</td></tr>
+    <tr><td>Engage gate</td><td><code>BTDecorator_PVEFightCheck</code> (BP)</td><td>Gate: MainTarget valid + able to engage</td><td>BTDecorator BP: <code>MainTarget != null && in range</code></td></tr>
+    <tr><td>Cover decision</td><td><code>JudgeCoverBehaviorProbability</code>, <code>JudgeCoverType</code>, <code>CoverDetect</code></td><td>Decide cover-behavior probability / cover type</td><td>Decorator BP + probability roll; query cover tag/height</td></tr>
+    <tr><td>Find cover</td><td><code>BTTask_RunCoverEQS</code> + <code>EQS_PVEAI_FindCoverNearBy</code> / <code>CoverArroundEnemy</code></td><td>EQS picks cover positions relative to enemy</td><td>Rewrite EQS: generator = points around self; tests = LoS-block to enemy (Trace) + distance + reachable (PathExist)</td></tr>
+    <tr><td>Move to cover</td><td><code>BTTask_MoveToCover</code> → <code>BTTask_RequestCoverStateSimple</code></td><td>Move to cover position, enter cover state</td><td>MoveTo + cover-state flag / montage</td></tr>
+    <tr><td>Fire from cover</td><td><code>BT_Cover_IdleAndActing</code> → <code>BT_Cover_BlindShoot</code> (<code>CalcCoverBlindShootLoc</code>, <code>CalcCoverShootDirection</code>) → <code>BTTQ_Shoot</code></td><td>Blind fire over/around cover, or lean-out aimed fire</td><td>Subtree BP: compute cover-relative fire offset, then fire task</td></tr>
+    <tr><td>Can-shoot check</td><td><code>CheckCanShootTarget</code>, <code>CheckShootVisiblity</code>, <code>CoverCheckCanShootTarget</code></td><td>LoS / line-of-fire clear?</td><td>Decorator BP: muzzle→target trace</td></tr>
+    <tr><td>Reposition</td><td>EQS <code>TrimPos_*</code> (fine), <code>MoveBack_*</code> (retreat), <code>CoverArroundEnemy</code> (flank)</td><td>Better spot in same / other range band</td><td>3 EQS queries + range-band branching</td></tr>
+    <tr><td>Move &amp; shoot</td><td><code>BT_Child_8DirMove_Shoot</code></td><td>Strafe in 8 directions while firing</td><td>Subtree: pick direction + MoveTo + fire in parallel</td></tr>
+    <tr><td>Grenade evade</td><td><code>EQS_AvoidGrenade</code></td><td>Safe point outside blast radius</td><td>EQS: outside threat (grenade) radius + reachable</td></tr>
+    <tr><td>Air-strike evade</td><td><code>EQS_AirHit_Escape</code></td><td>Evade point from heli / air strike</td><td>EQS: evade overhead threat</td></tr>
+    <tr><td>Threat broadcast</td><td><code>BTTask_BoardcastThreat</code>, <code>PrefectureBoardcastThreat</code></td><td>Broadcast enemy position to nearby allies (squad link)</td><td>BTTask BP: inject target into allies' BB within radius</td></tr>
+  </table>
+
+  <h2>3. WR2 porting rules (important)</h2>
+  <ul>
+    <li><b>Engine-default nodes reusable as-is:</b> <code>Selector / Sequence / SimpleParallel / Wait / Cooldown / Loop / RandomSelect / ForceSuccess</code> — all exist in UE5.7 standard BT.</li>
+    <li><b>DF C++ nodes have no code → must reimplement:</b> <code>DFMAITask_AdvancedMoveTo</code> (→ standard MoveTo + avoidance), <code>GPEnvQueryTest_PathTest</code> (→ standard EQS PathExist test), etc.</li>
+    <li><b><code>_C</code> suffix = Blueprint node</b> → recreate same-named BTTask/Decorator/Service BP in WR2 (internal logic is cooked/unreadable, so infer intent from name + connections).</li>
+    <li><b>Blackboard:</b> DF shares a single <code>BB_AI</code> (few classic BB keys; most state lives in components/code). WR2 — define only the core keys: <code>MainTarget</code>, <code>CoverLocation</code>, <code>CoverContext</code>, <code>CanShoot (bool)</code>, <code>SelfState (enum)</code>, <code>LastKnownTargetLoc</code>.</li>
+    <li><b>EQS is the heart of combat:</b> almost every positioning decision (cover / retreat / fine-tune / evade) is EQS. Build the EQS query set first → ~80% of combat quality. Range-band variants (300/600/1200/1500) are engagement-distance tuning; start with 1–2, expand later.</li>
+  </ul>
+
+  <h2>4. Suggested build order for Henrique</h2>
+  <ul>
+    <li>1. Blackboard <code>BB_WR2_AI</code> (core keys above)</li>
+    <li>2. EQS first — 4 queries: FindCoverNearBy, CoverArroundEnemy, MoveBack, TrimPos (+ AvoidGrenade)</li>
+    <li>3. Core BTTask/Decorator BPs: PVEFightCheck, BaseFightTarget, RunCoverEQS, MoveToCover, Shoot, CheckCanShootTarget</li>
+    <li>4. Service: UpdateMainTarget</li>
+    <li>5. Assemble the main BT per the flowchart (BlueprintStack 9347 can create nodes)</li>
+    <li>6. PIE-verify with one bot → confirm cover / fire / reposition → tune</li>
+  </ul>
+
+  <div class="note">Next: same format for <b>Squad (formation / suppression)</b>, <b>Boss (per-enemy patterns)</b>, <b>Vehicle (mounted turret MG)</b> flows.</div>
+
+</div>
+<script>
+  let pz=null;
+  mermaid.initialize({ startOnLoad:false, theme:"dark", flowchart:{ useMaxWidth:false, htmlLabels:true, nodeSpacing:55, rankSpacing:60 } });
+
+  function refit(){ if(!pz) return; pz.resize(); pz.fit(); pz.center(); pz.zoomBy(0.92); pz.center(); }
+
+  window.addEventListener("load", async ()=>{
+    await mermaid.run({ querySelector:".mermaid" });
+    const svg = document.querySelector("#diagram svg");
+    if (!svg) return;
+    // keep width/height attributes (svg-pan-zoom needs them to size the viewport),
+    // but force the rendered box to fill the container.
+    svg.setAttribute("width","100%");
+    svg.setAttribute("height","100%");
+    svg.style.width="100%";
+    svg.style.height="100%";
+    svg.style.maxWidth="none";
+    svg.style.display="block";
+    pz = svgPanZoom(svg, {
+      zoomEnabled:true, panEnabled:true, controlIconsEnabled:false,
+      fit:true, center:true, contain:false, minZoom:0.05, maxZoom:25, zoomScaleSensitivity:0.35
+    });
+    // fonts/layout settle → re-fit a couple times so it fills the screen, not a tiny center blob
+    requestAnimationFrame(refit);
+    setTimeout(refit, 250);
+    setTimeout(refit, 800);
+    window.addEventListener("resize", refit);
+  });
+</script>
+</body>
+</html>
