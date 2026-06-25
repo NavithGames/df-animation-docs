@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delta Force — Item &amp; Customization Structure</title>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  h4 { font-size:13.5px; margin:16px 0 6px; color:#cdd3dc; }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); margin:10px 0; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  pre.cb { background:#191c22; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; font-size:12px; color:#cdd3dc; margin:12px 0; line-height:1.45; }
+  pre.cb code { background:none; padding:0; color:inherit; font-size:12px; }
+  ul,ol { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>Delta Force — Item &amp; Customization Structure</h1><p>DF (UE5.3) extract research &middot; item / inventory / weapon / character / vehicle customization &middot; for WR2 &middot; researched by Wjna_Jr &middot; 2026-06-25</p><div class="nav"><a class="cur" href="item_index.html">Overview</a><a class="" href="item_inventory.html">Item & Inventory</a><a class="" href="item_weapon_parts.html">Weapon Parts</a><a class="" href="item_character_parts.html">Character Parts</a><a class="" href="item_vehicle_parts.html">Vehicle Parts</a><a class="" href="ai_index.html">← AI Guides</a></div></header>
+<div class="wrap"><div class="note">Delta Force item &amp; customization structure, reverse-engineered from FModel JSON exports. Reference material for Alen's item/inventory &amp; customization work in WR2. Each page keeps "estimated / unconfirmed" markers from the research intact. &middot; researched by Wjna_Jr &middot; 2026-06-25</div><h2>Research Pages</h2><div class="cards"><div class="card"><h3>Item &amp; Inventory Structure</h3><p>ID prefix category scheme, GameItemToInventory mapping, equipment preset slots, SOL loot/drop tables, container BP hierarchy.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="item_inventory.html">Open</a></div></div><div class="card"><h3>Weapon Parts (Gunsmith)</h3><p>4-layer gunsmith: weapon &rarr; socket &rarr; part &rarr; function. 20 sockets, stat modifiers, mesh socket transforms, fine-tune sliders, compatibility rules.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="item_weapon_parts.html">Open</a></div></div><div class="card"><h3>Character Parts Customization</h3><p>Hero skin-set assembly (CharacterAvatarData), FPP/TPP/UI core parts, shared skeleton, HeroFashionData tiers, wear-position priority.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="item_character_parts.html">Open</a></div></div><div class="card"><h3>Vehicle Parts Customization</h3><p>Two layers: skin (material swap) vs part (modification rules). RealTime battlefield purchase parts, socket codes, per-vehicle skin inventory.</p><div class="st">status: ready</div><div style="margin-top:10px"><a class="open" href="item_vehicle_parts.html">Open</a></div></div></div></div>
+</body></html>

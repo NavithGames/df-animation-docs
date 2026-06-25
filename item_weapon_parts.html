@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF — Weapon Parts (Gunsmith)</title>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  h4 { font-size:13.5px; margin:16px 0 6px; color:#cdd3dc; }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); margin:10px 0; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  pre.cb { background:#191c22; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; font-size:12px; color:#cdd3dc; margin:12px 0; line-height:1.45; }
+  pre.cb code { background:none; padding:0; color:inherit; font-size:12px; }
+  ul,ol { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF — Weapon Parts (Gunsmith)</h1><p>DF (UE5.3) extract research for WR2 item/inventory & customization rebuild · researched by Wjna_Jr · 2026-06-25</p><div class="nav"><a class="" href="item_index.html">Overview</a><a class="" href="item_inventory.html">Item & Inventory</a><a class="cur" href="item_weapon_parts.html">Weapon Parts</a><a class="" href="item_character_parts.html">Character Parts</a><a class="" href="item_vehicle_parts.html">Vehicle Parts</a><a class="" href="ai_index.html">← AI Guides</a></div></header>
+<div class="wrap"><div class="note">조사일: 2026-06-25<br>기준: FModel JSON export / DataTables / GameData / LuaSource (바이너리 LuaC)</div><h2>1. 발견 요약</h2><p>Delta Force의 건스미스(Gunsmith) 시스템은 전용 DataTable 기반이며, 4개 레이어로 구성된다.</p><pre class="cb"><code>무기(Rec/RecFunction) → 슬롯(PartSocketsTable) → 파츠(PartsDataTable) → 기능(PartsFunctionDataTable)</code></pre><ul><li>파츠는 <b>EAdapterItemType</b> enum으로 슬롯 타입이 구분됨</li><li>각 파츠에는 <b>FunctionId</b>가 있어 PartsFunctionDataTable과 연결, 스탯 보정을 정의</li><li>메시 부착은 <b>WeaponPartsMeshSocketNameInfo</b>에 소켓 위치/회전 하드코딩</li><li>파인 튜닝(FTune)은 <b>TunePartFunctionTable</b>의 슬라이더로 추가 보정 가능</li><li>호환성 규칙은 <b>PartsRuleTable + PartsRuleGroupTable + PartsForbidRuleTable</b> 3중 구조</li></ul><h2>2. 핵심 경로 목록</h2><h3>DataTables (FModel JSON 완전 추출됨)</h3><pre class="cb"><code>DataTables/WeaponPart/
+  PartSocketsTable.json          -- 소켓(슬롯) 전체 정의 (ID→타입→소켓명)
+  PartsClassConfigTable.json     -- 파츠 ItemId → Adapter BP 클래스 매핑
+  PartsFunctionDataTable.json    -- 파츠 기능/스탯 보정 정의
+  PartsAnimFunctionDataTable.json -- 파츠별 IK 포즈/애니 참조
+  WeaponPartsMeshSocketNameInfo.json -- 메시 경로→소켓 위치/회전 BakeData
+  GunsmithPartFixTransform.json  -- 특정 파츠+무기 조합의 위치 오프셋 보정
+  TunePartFunctionTable.json     -- 슬라이더형 파인튜닝 정의
+  PartsRuleGroupTable.json       -- 슬롯별 호환 파츠 그룹 목록
+  PartsForbidRuleTable.json      -- 특정 무기+접힘상태별 금지 파츠 목록
+  GunPresetTable.json            -- 무기별 기본 프리셋(이름+RecId 연결)
+  SuggestionPresetTable.json     -- 추천 프리셋(SOL/MP 모드별)
+  VoidPartsTable.json            -- 무기별 기본 장착 파츠(슬롯→ItemId)
+  ScoFunctionTable.json          -- 스코프 전용 광학 파라미터
+  LamFunctionTable.json          -- 레이저/라이트 전용 파라미터
+  AmmoDataTable.json             -- 탄약 데이터
+  BipodDeployTable.json          -- 바이포드 전개 파라미터
+  AimDownSightsTable.json        -- 조준경 열림/닫힘 애니 포즈 참조
+  PartsMergeableDataTable.json   -- 파츠 1P/3P 메시 머지 가능 여부
+  SilencerVolumeScaleDataTable.json -- 소음기 볼륨 보정
+  PartTuneCurve/                 -- 파인튜닝 Float커브 (파라미터별 별도 파일)</code></pre><h3>GameData (CSV/JSON 이중 저장)</h3><pre class="cb"><code>GameData/01_Weapons/
+  RecFunctionTable__WeaponPart.json    -- 무기(총기) RecId 마스터 테이블
+  GunPresetTable__WeaponPart.json
+  GunsmithPartFixTransform__WeaponPart.json
+  WeaponPartsMeshSocketNameInfo__WeaponPart.json
+  WeaponPartAnim__WeaponPart.json
+
+GameData/02_Parts/
+  PartsDataTable__WeaponPart.json      -- 파츠 마스터 테이블 (아이템 ID 기준)
+  PartsFunctionDataTable__WeaponPart.json
+  PartsRuleTable__WeaponPart.json      -- 파츠→소켓 호환 규칙
+  PartsExcludeRule__WeaponPart.json
+  PartSocketsTable__WeaponPart.json
+  PartsClassConfigTable__WeaponPart.json
+  PartsAnimFunctionDataTable__WeaponPart.json</code></pre><h3>메시 에셋</h3><pre class="cb"><code>Models/Weapons/Parts/
+  Rec/AR/   -- AR류 리시버 (e.g. Rec_AR_AK12_030)
+  Rec/PT/   -- 권총 리시버
+  Sco/      -- 스코프
+  Mag/      -- 탄창
+  Muz/      -- 머즐
+  Mou/      -- 마운트
+  PisG/     -- 피스톨 그립
+  Dev/      -- 전술 장치 (레이저/라이트)
+  Bullet/   -- 탄환 메시
+  Pendant/  -- 키체인/장식물
+  SkinTillingTexture/ -- 스킨 마스크 텍스처</code></pre><h3>LuaSource (건스미스 UI/로직)</h3><pre class="cb"><code>LuaSource/DFM/Business/Module/GunsmithModule/Data/SceneSocket/
+  GunsmithWeaponSocketConfig.lua   -- 소켓ID별 UI 카메라 포인트, 그룹 매핑 (바이너리 LuaC)
+  GunsmithWeaponSocketData.lua     -- 소켓 표시 여부/유효 파츠 판단 (바이너리 LuaC)
+  GunsmithWeaponSocketSnapshotData.lua
+  GunsmithSceneLineItemUIData.lua
+  GunsmithSceneSocketItemUIData.lua
+  GunsmithFineCavasPointConfig.lua</code></pre><h2>3. 슬롯(소켓) 정의 구조 — PartSocketsTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/PartSocketsTable.json</code><br><b>RowStruct</b>: <code>PartSocketsRow</code></p><table><tr><th>필드</th><th>타입</th><th>설명</th></tr><tr><td>SocketId</td><td>int</td><td>슬롯 고유 ID (1~20+)</td></tr><tr><td>SocketName</td><td>string</td><td>UE 스켈레탈 소켓명 (e.g. &quot;Sco_point&quot;)</td></tr><tr><td>SocketPartType</td><td>EAdapterItemType</td><td>파츠 타입 enum</td></tr><tr><td>bDefaultHide</td><td>bool</td><td>기본 숨김 여부</td></tr><tr><td>bIsCommon</td><td>bool</td><td>공용 레일 슬롯 여부</td></tr><tr><td>bHideForPlayer</td><td>bool</td><td>플레이어에게 노출 여부</td></tr><tr><td>CamPoint</td><td>EAssemblerCamPoint</td><td>건스미스 UI 카메라 위치</td></tr><tr><td>ExtraInfos</td><td>array</td><td>부모 파츠 타입별 추가 UI 표시 정보</td></tr></table><h3>전체 슬롯 목록 (확인된 20개)</h3><table><tr><th>SocketId</th><th>SocketName</th><th>EAdapterItemType</th><th>CamPoint</th></tr><tr><td>1</td><td>PisG_point</td><td>PistolGrip</td><td>POINT_GRIP</td></tr><tr><td>2</td><td>Bar_point</td><td>GunBarral</td><td>POINT_BARREL</td></tr><tr><td>3</td><td>Sto_point</td><td>Stock</td><td>POINT_STOCK</td></tr><tr><td>4</td><td>Han_point</td><td>Handguard</td><td>POINT_HANDGUARD</td></tr><tr><td>5</td><td>Mag_point</td><td>Magazine</td><td>POINT_MAGAZINE</td></tr><tr><td>6</td><td>Muzzle_point</td><td>Muzzle</td><td>POINT_MUZZLE</td></tr><tr><td>7</td><td>FSig_point</td><td>ForSight</td><td>POINT_SIGHT</td></tr><tr><td>8</td><td>For_point</td><td>Foregrip</td><td>POINT_HANDGUARD</td></tr><tr><td>9</td><td>Rea_point</td><td>Sight</td><td>POINT_SIGHT</td></tr><tr><td>10</td><td>Bip_point</td><td>Bipod</td><td>POINT_BIPOD</td></tr><tr><td>11</td><td>Sco_point</td><td>Sight</td><td>POINT_SIGHT</td></tr><tr><td>12</td><td>Mag1_point</td><td>Magazine</td><td>POINT_MAGAZINE</td></tr><tr><td>13</td><td>ScoB_point</td><td>Sight</td><td>POINT_SIGHT</td></tr><tr><td>14</td><td>Common_point</td><td>TacticalDevices</td><td>POINT_COMMON_POINT (공용)</td></tr><tr><td>15</td><td>CommonF_point</td><td>TacticalDevices</td><td>POINT_UP_RAIL (공용)</td></tr><tr><td>16</td><td>CommonB_point</td><td>TacticalDevices</td><td>POINT_UP_RAIL (공용)</td></tr><tr><td>17</td><td>CommonU_point</td><td>TacticalDevices</td><td>POINT_UP_RAIL (공용)</td></tr><tr><td>18</td><td>CommonD_point</td><td>TacticalDevices</td><td>POINT_DOWN_RAIL (공용)</td></tr><tr><td>19</td><td>CommonL_point</td><td>TacticalDevices</td><td>POINT_LEFT_RAIL (공용)</td></tr><tr><td>20</td><td>CommonR_point</td><td>TacticalDevices</td><td>POINT_RIGHT_RAIL (공용)</td></tr></table><p><b>LuaSource에서 확인된 추가 소켓명</b> (GunsmithWeaponSocketConfig.lua 바이너리 심볼):</p><pre class="cb"><code>RailCL_point, RailCU_point, RailCD_point, RailCR_point
+BarBip_point, HanKit_point, StoKit_point, BarKit_point
+Spe_point, ScoF_point, ScoSecondary_point, ScoU_point
+Riser_point, HydraSco_point, Flashkill_point
+MagBass_point, PistolgripPatch_point, GripBass_point
+Cheekpad_point, Connector_point, HanU_point
+Gas_point, Hammer_point, Trigger_point, Shield_point
+Bolt_point, PisG2_point, Handle_point
+BowString_point, BowGrip_point, BowLimb_point, BowScope_point
+ArrowRest_point, Stabilizer_point, BowRelease_point
+Lever_point, ShellHolder_point</code></pre><p>(위 소켓은 DataTable 추출본에 없고 Lua 심볼에만 확인됨 — 추정: 추가 파츠 타입)</p><h2>4. 파츠 정의 구조 — PartsDataTable</h2><p><b>파일</b>: <code>GameData/02_Parts/PartsDataTable__WeaponPart.json</code><br><b>RowStruct</b>: <code>PartsDataRow</code><br><b>Row Key</b>: 파츠 ItemId (e.g. 13020000459)</p><pre class="cb"><code>{
+  &quot;ItemId&quot;: 13020000459,
+  &quot;FunctionId&quot;: 110459,           // PartsFunctionDataTable 참조 키
+  &quot;FunctionId_SOL&quot;: 110459,       // SOL 모드용 FunctionId
+  &quot;FunctionId_Breakthrough&quot;: 1110459, // 브레이크스루 업그레이드 레벨 FunctionId
+  &quot;AnimFunctionId&quot;: 0,            // PartsAnimFunctionDataTable 참조 (0=없음)
+  &quot;AudioFunctionId&quot;: 0,
+  &quot;FxFuntionId&quot;: 0,
+  &quot;RuleId&quot;: 110459,               // PartsRuleTable 참조 키
+  &quot;MagazineTypeId&quot;: 0,
+  &quot;PartsTypeId&quot;: 0,
+  &quot;PartsTypePriority&quot;: 0,
+  &quot;ExtraOccupySockets&quot;: [],       // 추가 점유 소켓 목록
+  &quot;SocketOffsets&quot;: [],            // 소켓 오프셋 오버라이드
+  &quot;ProsList&quot;: [                   // 장점 표시용 (UI 텍스트 파라미터)
+    { &quot;BuffText&quot;: &quot;%s%s&quot;, &quot;Params&quot;: [&quot;+1&quot;, &quot;10001&quot;] }
+  ],
+  &quot;ConsList&quot;: [],                 // 단점 표시용
+  &quot;IsHiddenInGunsmith&quot;: false,    // 건스미스 UI 숨김 여부
+  &quot;WeaponAssemblyPoint&quot;: 0,       // 어셈블리 포인트 비용
+  &quot;TuneIds&quot;: [1005, 1006],        // TunePartFunctionTable 참조 (파인 튜닝 슬라이더)
+  &quot;PartFunctionTag&quot;: &quot;EPartFunctionTag::NONE&quot;,
+  &quot;bRelease&quot;: true,               // 출시 여부
+  &quot;TriggerBulletCrack&quot;: true,
+  &quot;bSupportDualMag&quot;: true,
+  &quot;IsBreakthroughMode&quot;: false,
+  &quot;BannedSlotIds&quot;: &quot;&quot;             // 금지 소켓 ID 목록 (문자열)
+}</code></pre><h3>ItemId 범위 추정 (실제 파일 기준)</h3><ul><li><code>130xxxxxxxx</code> 계열: 무기 파츠 아이템</li><li><code>120xxxxxxxx</code> 계열: FroS(ForeSight/사이트) 계열로 WeaponPartsMeshSocketNameInfo에서 확인</li><li><code>180xxxxxxxx</code> 계열: 무기 RecId (총기 본체)</li><li><code>100xxxxxxxx</code> 계열: 프리셋 ItemId</li></ul><h2>5. 파츠 기능/스탯 보정 — PartsFunctionDataTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/PartsFunctionDataTable.json</code><br><b>RowStruct</b>: <code>PartsFunctionRow</code></p><pre class="cb"><code>{
+  &quot;RuleKey&quot;: 7,
+  &quot;FunctionId&quot;: 150241,
+  &quot;PartFunctionType&quot;: &quot;EWeaponPartFunctionType::StaticAttributeModify&quot;,
+  &quot;bNegative&quot;: false,
+  &quot;PartFunctionDynamicType&quot;: &quot;EWeaponPartFunctionDynamicType::NONE&quot;,
+  &quot;Param1&quot;: &quot;ChangeClipTime&quot;,     // 대상 속성명
+  &quot;Param2&quot;: &quot;Mult_A&quot;,             // 수정 방식 (Mult_A=곱셈A, Addend=덧셈 등)
+  &quot;Param3&quot;: &quot;0.247&quot;,              // 값
+  &quot;Param4&quot;: &quot;None&quot;,
+  &quot;Param5&quot;: &quot;None&quot;,
+  &quot;AccessoryAnimPose&quot;: { &quot;AssetPath&quot;: &quot;None&quot; },
+  &quot;AccessoryTPPAnimPose&quot;: { &quot;AssetPath&quot;: &quot;None&quot; }
+}</code></pre><h3>EWeaponPartFunctionType 종류 (확인됨)</h3><table><tr><th>값</th><th>설명</th></tr><tr><td>StaticAttributeReplace</td><td>속성 값 교체 (e.g. ChangeClipMode)</td></tr><tr><td>StaticAttributeModify</td><td>속성 값 보정 (곱셈/덧셈)</td></tr></table><h3>확인된 Param1 속성명 (스탯 키)</h3><ul><li><code>ChangeClipMode</code> — 장전 모드 변경</li><li><code>ChangeClipTime</code> — 장전 시간 (Mult_A: 24.7% 감소 등)</li><li>(추정: 반동/ADS속도/명중 등은 동일 패턴, 실제 속성명은 추출되지 않은 로우에 포함)</li></ul><h2>6. 파인 튜닝 시스템 — TunePartFunctionTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/TunePartFunctionTable.json</code><br><b>RowStruct</b>: <code>TunePartFunctionTable</code></p><p>파츠별 슬라이더(TuneId)로 세부 수치 조정. PartsDataTable의 <code>TuneIds</code> 배열이 이를 참조.</p><pre class="cb"><code>{
+  &quot;TuneId&quot;: 1002,
+  &quot;SliderType&quot;: &quot;ETuneSliderType::Discrete&quot;,
+  &quot;TuneMeshType&quot;: &quot;ETuneMeshType::Position&quot;,
+  &quot;DefaultValue&quot;: 50,
+  &quot;MinValue&quot;: 0,
+  &quot;MaxValue&quot;: 100,
+  &quot;TuneAttributeFunctions&quot;: [
+    {
+      &quot;RuleKey&quot;: &quot;GMagCapacity&quot;,          // 탄창 용량
+      &quot;PartFunctionType&quot;: &quot;StaticAttributeModify&quot;,
+      &quot;ModifierType&quot;: &quot;Mult_C&quot;
+    }
+  ],
+  &quot;DisplayTuneAttributeFunctions&quot;: [
+    {
+      &quot;FloatCurve&quot;: { &quot;AssetPath&quot;: &quot;/Game/DataTables/WeaponPart/PartTuneCurve/DefaultPartTuneCurve1&quot; },
+      &quot;IsDebuff&quot;: false
+    }
+  ]
+}</code></pre><h3>PartTuneCurve 파라미터 목록 (파일명 기준, 실제 커브)</h3><ul><li>BarrelLength → ADStime, BulletVelocity</li><li>BarrelWeight → ADSStrafeSpeed, Gunkick</li><li>ForegripPosition → AdsSpeed, Recoil</li><li>ForegripThickness → ADSStrafeSpeed, BehitSway</li><li>ForegripWeight → AdsSpeed, Recoil</li><li>GripThickness → ADSSpeed</li><li>MuzzleLength → ADSSpeed, Velocity</li><li>MuzzleWeight → BreathStability, Recoil</li><li>CheekpadPosition → ADSStrafeScale, BreathStability</li><li>ScoEyeDistance → (조준경 눈 거리)</li><li>StoThickness → ADSSpeed, Gunkick</li><li>StoWeight → BreathScale, Recoil</li><li>TeleStoPosition → ADSSpeed, Gunkick</li><li>ADSZoomScale → Small/Large (배율별)</li></ul><h2>7. 메시 소켓 부착 구조 — WeaponPartsMeshSocketNameInfo</h2><p><b>파일</b>: <code>DataTables/WeaponPart/WeaponPartsMeshSocketNameInfo.json</code><br><b>Key</b>: 메시 에셋 경로 (UI/1P/3P 각각 별도 행)</p><pre class="cb"><code>&quot;/Game/Models/Weapons/Parts/FroS/FroS_M4A1-Std_001/FroS_M4A1-Std_001_1P&quot;: {
+  &quot;ItemId&quot;: 12010000001,
+  &quot;SocketNames&quot;: [&quot;S_root&quot;, &quot;Bone01&quot;, &quot;CenterEnd&quot;],
+  &quot;SocketLocation&quot;: [
+    { &quot;X&quot;: 0, &quot;Y&quot;: 0, &quot;Z&quot;: 0 },
+    { &quot;X&quot;: 0, &quot;Y&quot;: 0, &quot;Z&quot;: -9.5e-07 },
+    { &quot;X&quot;: 0, &quot;Y&quot;: 2.34, &quot;Z&quot;: 7.31 }
+  ],
+  &quot;SocketRotation&quot;: [
+    { &quot;Pitch&quot;: 0, &quot;Yaw&quot;: -1.36e-05, &quot;Roll&quot;: -2.03e-04 },
+    ...
+  ],
+  &quot;RootBoneName&quot;: &quot;Bone01&quot;
+}</code></pre><ul><li>각 파츠 스켈레탈 메시에 <code>S_root</code>, <code>RootBone</code>, <code>CenterEnd</code> 소켓이 정의됨</li><li><code>CenterEnd</code>는 카메라/UI 중심점 기준으로 추정</li><li>UI/1P/3P 동일 ItemId, 메시 경로만 다름</li></ul><h3>위치 보정 오버라이드 — GunsmithPartFixTransform</h3><p>특정 파츠+무기 조합에 한해 위치 오프셋 추가 보정:</p><pre class="cb"><code>&quot;13120000235&quot;: {
+  &quot;PartID&quot;: 13120000273,
+  &quot;WeaponIDs&quot;: [18020000003],
+  &quot;FixLocation&quot;: { &quot;X&quot;: 0, &quot;Y&quot;: 0, &quot;Z&quot;: 10 }
+}</code></pre><p>(현재 추출물에는 1건만 존재)</p><h2>8. 스코프 전용 파라미터 — ScoFunctionTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/ScoFunctionTable.json</code></p><pre class="cb"><code>{
+  &quot;ItemId&quot;: 13110000001,         // 스코프 아이템 ID
+  &quot;bOverrideZoomRate&quot;: true,
+  &quot;ZoomRate&quot;: 3,                 // 배율 (3x)
+  &quot;OutZoomRate&quot;: 2.4,            // 해제 시 배율
+  &quot;CamOffset&quot;: 25,               // 카메라 오프셋
+  &quot;FovForWeapon&quot;: 20,            // 무기 FOV
+  &quot;AlignmentMode&quot;: &quot;EZoomAlignmentMode::TransformAlignment&quot;,
+  &quot;ScoRadius&quot;: 1.437575,         // 렌즈 반경
+  &quot;bHasLens&quot;: true,
+  &quot;CrosshairPresetId&quot;: 5,        // 조준선 프리셋
+  &quot;TickmarkPresetId&quot;: 6,         // 틱마크 프리셋
+  &quot;bEnableScopeShadow&quot;: true,
+  &quot;bEnableEdgeRefraction&quot;: false,
+  &quot;LodSwitchTiming&quot;: 0.9
+}</code></pre><h2>9. 레이저/라이트 파라미터 — LamFunctionTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/LamFunctionTable.json</code></p><pre class="cb"><code>{
+  &quot;ItemId&quot;: 13160000002,
+  &quot;MaxDistance&quot;: 5000,
+  &quot;MaxDistance_3P&quot;: 5000,
+  &quot;bUseMesh&quot;: true,
+  &quot;LaserMesh&quot;: { &quot;AssetPath&quot;: &quot;/Game/Effects/Common/Mesh/Plane/SM_EFX_Plane_15&quot; },
+  &quot;LaserMat&quot;: { &quot;AssetPath&quot;: &quot;/Game/Effects/Common/MaterialInstance/Beam/MI_P_EFX_laser_DistanceTiling_inst&quot; },
+  &quot;DefMeshScale&quot;: { &quot;X&quot;: 0.01, &quot;Y&quot;: 0.1, &quot;Z&quot;: 0.01 },
+  &quot;LaserLineFXName&quot;: &quot;Tactical_Laser_Light&quot;,
+  &quot;LaserPointFXName&quot;: &quot;Tactical_Laser_Point&quot;,
+  &quot;bVisibleFor3P&quot;: true
+}</code></pre><h2>10. 호환성 규칙 구조</h2><h3>10-1. PartsRuleGroupTable (슬롯별 호환 파츠 그룹)</h3><p><b>Key</b>: 그룹명 (중국어)<br><b>SocketId</b>: 대상 슬롯<br><b>ItemIds</b>: 허용 파츠 목록<br><b>InstallRuleId</b>: 적용 규칙 ID 목록</p><p>예시: SocketId=11 (Sco_point) → 16개 스코프 아이템 허용</p><h3>10-2. PartsRuleTable (파츠→소켓 1:1 매핑)</h3><pre class="cb"><code>{
+  &quot;RuleKey&quot;: 12225,
+  &quot;RuleId&quot;: 140258,
+  &quot;ItemId&quot;: 13140000028,   // 파츠 ItemId
+  &quot;SocketId&quot;: 8,           // 장착 소켓
+  &quot;bIsGroup&quot;: true,        // 그룹 규칙 여부
+  &quot;Priority&quot;: 0,
+  &quot;FixedMeshItemId&quot;: 0
+}</code></pre><h3>10-3. PartsForbidRuleTable (무기+상태별 금지)</h3><pre class="cb"><code>{
+  &quot;WeaponID&quot;: 18030000006,
+  &quot;ForbidKey&quot;: &quot;114&quot;,
+  &quot;ForbidPartIDs&quot;: &quot;13020000578,13120000363,...&quot;,
+  &quot;bIsFolded&quot;: true   // 접힌 상태일 때 금지
+}</code></pre><h2>11. 무기 마스터 — RecFunctionTable</h2><p><b>파일</b>: <code>GameData/01_Weapons/RecFunctionTable__WeaponPart.json</code><br><b>RowStruct</b>: <code>RecFunctionRow</code></p><pre class="cb"><code>{
+  &quot;RecFunctionId&quot;: 18010000001,       // 무기 RecId
+  &quot;CameraID&quot;: 18010000001,
+  &quot;SerieId&quot;: 34,
+  &quot;IsBaseModel&quot;: true,
+  &quot;DefaultPreset&quot;: 10010000122,       // 기본 장착 프리셋 ItemId
+  &quot;MPDefaultPreset&quot;: 10010000122,
+  &quot;BasicPistolGrip&quot;: 0,               // 기본 파츠 (0=없음)
+  &quot;BasicGunBarrel&quot;: 0,
+  &quot;BasicHandGuard&quot;: 0,
+  &quot;BasicStock&quot;: 0,
+  &quot;BasicMagazine&quot;: 0,
+  &quot;BPClass&quot;: {
+    &quot;AssetPath&quot;: &quot;/Game/BluePrints/Weapons/WeaponBP/BP_WeaponModular&quot;
+  },
+  &quot;WeaponAssemblyPointLimit&quot;: 0
+}</code></pre><ul><li>모든 무기 BP가 <code>BP_WeaponModular</code>를 사용 → 모듈식 무기 시스템 확인</li></ul><h2>12. 파츠 메시 네이밍 체계</h2><p>폴더명 약어와 소켓 연결:</p><table><tr><th>폴더</th><th>약어</th><th>EAdapterItemType</th></tr><tr><td>Rec</td><td>Rec</td><td>Receiver (총기 본체)</td></tr><tr><td>Sco</td><td>Sco</td><td>Sight (스코프)</td></tr><tr><td>Mag</td><td>Mag</td><td>Magazine</td></tr><tr><td>Muz</td><td>Muz</td><td>Muzzle</td></tr><tr><td>Mou</td><td>Mou</td><td>Mount (마운트/레일)</td></tr><tr><td>PisG</td><td>PisG</td><td>PistolGrip</td></tr><tr><td>Dev</td><td>Dev</td><td>TacticalDevices (레이저/라이트)</td></tr><tr><td>FroS</td><td>FroS</td><td>ForeSight (가늠쇠, ItemId 120xxxxxxxx)</td></tr><tr><td>FroG</td><td>FroG</td><td>Foregrip (파츠 폴더 미추출, AnimPose에서 참조 확인)</td></tr></table><p>메시 파일명 패턴:</p><pre class="cb"><code>{타입코드}_{무기코드}_{기능}_{시리얼}_{해상도}.uasset
+예: Sco_2X_TrihawkPrismScope_070 → 스코프 2X 트리혹 (070번)
+    Rec_AR_AK12_030 → AR 리시버 AK12 (030번)
+    FroS_M4A1-Std_001 → M4A1 전방 가늠자 표준형 (001번)</code></pre><h2>13. 파츠 애니메이션 구조 — PartsAnimFunctionDataTable</h2><p><b>파일</b>: <code>DataTables/WeaponPart/PartsAnimFunctionDataTable.json</code></p><pre class="cb"><code>{
+  &quot;AnimFunctionId&quot;: 10001,
+  &quot;PartFunctionType&quot;: &quot;EWeaponPartAnimFunctionType::IK_LeftHand&quot;,
+  &quot;AccessoryAnimPoseArray&quot;: [
+    { &quot;AssetPath&quot;: &quot;/Game/Models/Weapons/Parts/FroG/AdditivePose/AR_M_1P_FroGPose&quot; }
+  ],
+  &quot;AccessoryAnimPoseMap&quot;: [
+    {
+      &quot;Key&quot;: &quot;EWeaponAdapterHandIKPoseType::FPPFar&quot;,
+      &quot;Value&quot;: { &quot;AssetPath&quot;: &quot;/Game/Models/Weapons/Parts/FroG/AdditivePose/AR_M_1P_chuizhi_FroGPose_Far&quot; }
+    }
+  ],
+  &quot;AccessoryTPPAnimPoseArray&quot;: [ &quot;AR_M_3P_FroGPose01&quot; ],
+  &quot;AccessoryHallAnimPoseArray&quot;: [ &quot;AR_M_UI_VerticalGripPose&quot; ],
+  &quot;BipodDeployId&quot;: 1
+}</code></pre><ul><li>포어그립 부착 시 왼손 IK 포즈를 파츠별로 교체</li><li>FPP/TPP/UI(Hall) 3종 포즈 별도 참조</li><li><code>FPPFar</code> 변형(먼 거리 그립) 포즈도 별도 정의</li></ul><h2>14. 건스미스 시스템 플로우 (종합)</h2><pre class="cb"><code>1. 무기 선택
+   └─ RecFunctionTable[RecId]
+       ├─ DefaultPreset → GunPresetTable → 기본 파츠 구성
+       └─ BPClass = BP_WeaponModular (모든 무기 공통)
+
+2. 슬롯 노출
+   └─ PartSocketsTable[SocketId]
+       ├─ SocketName (UE 스켈레탈 소켓명)
+       ├─ EAdapterItemType (슬롯 타입)
+       └─ bIsCommon = true → 레일 부착형 공용 슬롯
+
+3. 호환 파츠 목록
+   └─ PartsRuleGroupTable[SocketId]
+       └─ ItemIds[] → 허용 파츠 목록
+           └─ PartsForbidRuleTable 필터링 (무기별 금지 파츠 제거)
+
+4. 파츠 장착
+   ├─ PartsDataTable[ItemId]
+   │   ├─ FunctionId → PartsFunctionDataTable (스탯 보정)
+   │   ├─ AnimFunctionId → PartsAnimFunctionDataTable (IK 포즈)
+   │   └─ TuneIds[] → TunePartFunctionTable (파인 튜닝 슬라이더)
+   │
+   ├─ PartsClassConfigTable[ItemId]
+   │   └─ FppAdapterClass / TppAdapterClass (BP Adapter 클래스)
+   │
+   └─ WeaponPartsMeshSocketNameInfo[메시경로]
+       ├─ SocketNames[] (부착 소켓명)
+       └─ SocketLocation/Rotation (소켓 트랜스폼)
+           └─ GunsmithPartFixTransform (특정 조합 오프셋 보정)
+
+5. 스코프/레이저 전용
+   ├─ ScoFunctionTable[ItemId] → 배율/렌즈/조준선 파라미터
+   └─ LamFunctionTable[ItemId] → 레이저 거리/FX 파라미터
+
+6. 파인 튜닝
+   └─ TunePartFunctionTable[TuneId]
+       ├─ SliderType (Discrete/연속)
+       ├─ TuneAttributeFunctions[] → 속성 커브 보정
+       └─ PartTuneCurve/*.json (Float 커브)</code></pre><h2>15. VoidPartsTable — 무기별 기본 장착 파츠</h2><p><b>파일</b>: <code>DataTables/WeaponPart/VoidPartsTable.json</code></p><p>무기가 건스미스에서 기본적으로 표시하는 파츠 (빈 슬롯의 기본 메시):</p><pre class="cb"><code>{
+  &quot;RecId&quot;: 18010000011,    // 무기 RecId
+  &quot;ItemId&quot;: 13030000021,   // 기본 파츠 ItemId
+  &quot;SocketId&quot;: 1,           // 소켓 (PistolGrip)
+  &quot;ConditionType&quot;: &quot;EWeaponVoidPartsModelConditionType::None&quot;
+}</code></pre><h2>16. 불확실 항목</h2><ol><li><b>파츠 ItemId와 실제 파츠 타입(슬롯) 매핑</b>: PartsDataTable에 슬롯 타입 필드 없음. PartsRuleTable의 SocketId로 역추적해야 함 — 직접 조회 필요.</li></ol><ol><li><b>FunctionId 중 StaticAttributeModify Param1 전체 목록</b>: 추출된 샘플에서 <code>ChangeClipMode</code>, <code>ChangeClipTime</code>만 확인. 반동(Recoil)/ADS속도/명중/이동속도 등 속성 키는 추가 로우 분석 필요.</li></ol><ol><li><b>Lua 건스미스 UI 로직</b>: LuaSource는 컴파일된 LuaC 바이너리 — 심볼(함수명/상수)은 읽히나 실제 로직 상세는 역컴파일 없이는 확인 불가.</li></ol><ol><li><b>파츠 메시 대부분 미추출</b>: <code>Models/Weapons/Parts/</code> 아래 JSON export가 극히 일부(10개 미만). 실제 메시 경로는 WeaponPartsMeshSocketNameInfo CSV에서 <code>/Game/Models/Weapons/Parts/FroS/.../</code> 패턴으로 다수 확인되나 pskx/uasset은 별도 추출 필요.</li></ol><ol><li><b>EAdapterItemType 전체 enum 값</b>: 확인된 값 (PistolGrip, GunBarral, Stock, Handguard, Magazine, Muzzle, ForSight, Foregrip, Sight, Bipod, TacticalDevices, Receiver). 활 관련 소켓(Lua 심볼)으로 보아 근접/특수 무기 전용 타입 추가 존재 추정.</li></ol><ol><li><b>PartsMergeableDataTable의 <code>AppearanceId</code></b>: 대부분 0 — 스킨 관련 외관 ID로 추정되나 연결 테이블 미확인.</li></ol><p><i>조사 기준 파일: FModel export JSON (DataTables 폴더 완전 추출, GameData 이중 저장, Models 일부 추출)</i></p></div>
+</body></html>

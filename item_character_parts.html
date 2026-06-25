@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF — Character Parts Customization</title>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  h4 { font-size:13.5px; margin:16px 0 6px; color:#cdd3dc; }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); margin:10px 0; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  pre.cb { background:#191c22; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; font-size:12px; color:#cdd3dc; margin:12px 0; line-height:1.45; }
+  pre.cb code { background:none; padding:0; color:inherit; font-size:12px; }
+  ul,ol { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF — Character Parts Customization</h1><p>DF (UE5.3) extract research for WR2 item/inventory & customization rebuild · researched by Wjna_Jr · 2026-06-25</p><div class="nav"><a class="" href="item_index.html">Overview</a><a class="" href="item_inventory.html">Item & Inventory</a><a class="" href="item_weapon_parts.html">Weapon Parts</a><a class="cur" href="item_character_parts.html">Character Parts</a><a class="" href="item_vehicle_parts.html">Vehicle Parts</a><a class="" href="ai_index.html">← AI Guides</a></div></header>
+<div class="wrap"><p>조사일: 2026-06-25<br>데이터 소스: FModel JSON export, 폴더/파일 네이밍</p><h2>1. 발견 요약</h2><ul><li>DF 캐릭터 파츠는 <b>영웅(HeroID) 단위 스킨 세트</b>로 관리됨. 부위 단위 독립 교체는 데이터 구조상 지원되지 않음(추정: UI 런타임에서 세트 단위로 교체).</li><li>조립 정의의 핵심은 <code>CharacterAvatarData</code> DataTable: 영웅별로 FPP/TPP/UI 뷰에 각 <code>CoreParts[]</code> 배열(AvatarPart 슬롯 → 메시 경로)이 선언됨.</li><li>파츠 슬롯은 <code>ECharacterAvatarPartConfig</code> 열거형으로 구분: Upper / Lower / Head / Hair / HairAdaptive (실제 확인 5종).</li><li>착용 가능 아이템의 레이어 우선순위는 <code>CharacterAppearanceAdaptationData</code>가 별도 관리 (WearPosition 슬롯 10종 + PriorityAvatar 4종).</li><li>영웅 코스메틱(스킨 세트)은 <code>HeroFashionData</code> DataTable: FashionID별로 BelongedHeroID, Class(등급), HeroItemIDs(번들 포함 추가 아이템) 필드.</li><li>메시는 일반 품질(<code>Models/Characters/Hero/</code>) 및 HD 품질(<code>Models/Characters_HD/Hero_HD/</code>) 두 세트로 존재.</li><li>공유 마스터 스켈레톤: <code>C_Test_001_3P_Skeleton</code> (3P/HD 공통), 영웅 전용 UI 스켈레톤(<code>{Hero}_{Skin}_Body_UI_Skeleton</code>)도 스킨별 개별 존재.</li><li>UI 뷰에서 일부 영웅은 <code>IsUseMasterMesh: true</code> + <code>Master_Man_UI</code> / <code>Master_Female_UI</code> 마스터 메시에 파츠를 LeaderPose 방식으로 붙이는 패턴 확인.</li><li>ExtraParts에는 <code>ECharacterAvatarExtraTag::SkillItem</code> 타입으로 능력 아이템 메시가 별도 추가됨.</li></ul><h2>2. 부위별 파츠 정의 위치 및 구조</h2><h3>2-1. 핵심 DataTable 목록</h3><table><tr><th>DataTable 이름</th><th>경로 (GameData)</th><th>경로 (R13N)</th><th>역할</th></tr><tr><td>CharacterAvatarData</td><td><code>GameData/08_Characters/CharacterAvatarData.json</code></td><td><code>R13N/Common/PC/DataTables/CharacterAvatarData.json</code></td><td>영웅별 뷰/파츠 메시 조립 정의 (핵심)</td></tr><tr><td>HeroFashionData</td><td><code>GameData/08_Characters/HeroFashionData.json</code></td><td><code>R13N/Common/Base/DataTables/Hero/HeroFashionData.json</code></td><td>스킨 세트(FashionID)별 영웅 귀속·등급·번들 아이템</td></tr><tr><td>HeroData</td><td><code>GameData/08_Characters/HeroData.json</code></td><td><code>R13N/Common/Base/DataTables/Hero/HeroData.json</code></td><td>영웅 기본 정보(HeroId, ArmedForceId, 아이콘 등)</td></tr><tr><td>HeroItemData</td><td><code>GameData/08_Characters/HeroItemData.json</code></td><td><code>R13N/Common/Base/DataTables/Hero/HeroItemData.json</code></td><td>번들 추가 아이템 정의(스킬 아이템 모델)</td></tr><tr><td>CharacterAppearanceAdaptationData</td><td><code>GameData/08_Characters/CharacterAppearanceAdaptationData.json</code></td><td><code>R13N/Common/Base/DataTables/CharacterAppearanceAdaptationData.json</code></td><td>아이템별 착용 우선순위(슬롯 충돌 해소)</td></tr><tr><td>CharacterSkillItemMeshData</td><td>(없음)</td><td><code>R13N/Common/PC/DataTables/CharacterSkillItemMeshData.json</code></td><td>스킬 아이템 FPP/TPP/UI 메시 경로</td></tr><tr><td>CharacterProfiles</td><td><code>GameData/08_Characters/CharacterProfiles.json</code></td><td>-</td><td>AI/NPC 프로필별 FashionList 선언</td></tr></table><h3>2-2. ECharacterAvatarPartConfig 슬롯 (CoreParts)</h3><p>실제 JSON에서 확인된 값:</p><table><tr><th>슬롯 코드</th><th>의미</th><th>뷰별 사용 여부</th></tr><tr><td>Upper</td><td>상의 / 몸통 메시 (FPP에서는 1P 팔 메시)</td><td>FPP / TPP / UI 전부</td></tr><tr><td>Lower</td><td>하의 / 하체 메시</td><td>FPP / TPP / UI 전부</td></tr><tr><td>Head</td><td>얼굴 메시</td><td>TPP / UI</td></tr><tr><td>Hair</td><td>헤어 메시</td><td>TPP / UI</td></tr><tr><td>HairAdaptive</td><td>헤어 보조 레이어 (헬멧 착용 시 교체용 추정)</td><td>TPP / UI (일부 영웅)</td></tr></table><p>FPP(1인칭)에서는 통상 Upper(팔)+Lower(다리) 2슬롯만 선언.<br>TPP/UI에서는 Upper+Lower+Head+Hair(+HairAdaptive) 최대 5슬롯.</p><h3>2-3. ExtraParts 슬롯</h3><table><tr><th>필드</th><th>값 예시</th></tr><tr><td>ExtraTag</td><td><code>ECharacterAvatarExtraTag::SkillItem</code></td></tr><tr><td>AvatarItemName</td><td><code>&quot;SkillMesh&quot;</code></td></tr><tr><td>MeshPath</td><td>능력 장비 SkeletalMesh 경로</td></tr><tr><td>AttachSocket</td><td>소켓 이름(있을 경우)</td></tr></table><h3>2-4. CharacterAppearanceAdaptationData WearPosition 슬롯</h3><p>실제 JSON 필드(PriorityWearPosition_*):</p><table><tr><th>WearPosition 슬롯</th><th>부위</th></tr><tr><td>Head</td><td>머리/헬멧</td></tr><tr><td>Face</td><td>얼굴 장비(마스크 등)</td></tr><tr><td>Eyes</td><td>안경/고글</td></tr><tr><td>Ears</td><td>귀 장비</td></tr><tr><td>Neck</td><td>목 장비</td></tr><tr><td>Shoulders</td><td>어깨 장비</td></tr><tr><td>UpperInner</td><td>내피/상의</td></tr><tr><td>UpperOuter</td><td>외피/재킷</td></tr><tr><td>Lower</td><td>하의</td></tr><tr><td>Bag</td><td>배낭</td></tr></table><p>추가 Avatar 우선순위 필드(PriorityAvatar_*): Hair / Head / Upper / Lower</p><h2>3. CharacterAvatarData 구조 (대표 샘플 필드 트리)</h2><p>아래는 HeroID <code>88000000025</code> (M_Dragon 계열) 항목 요약:</p><pre class="cb"><code>{
+  &quot;HeroId&quot;: &quot;88000000025&quot;,           // 영웅 고유 ID (행 키 겸)
+  &quot;Sex&quot;: &quot;ECharacterAvatarSex::Male&quot;,
+  &quot;CharacterTag&quot;: &quot;ECharacterTag::Hero&quot;,
+  &quot;SkinId&quot;: &quot;None&quot;,                  // 항상 None (스킨은 FashionID 단위 관리)
+
+  &quot;FPP&quot;: {
+    &quot;IsUseMasterMesh&quot;: false,
+    &quot;MasterMesh&quot;: &quot;&quot;,
+    &quot;CoreParts&quot;: [
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::Upper&quot;,
+        &quot;MeshPath&quot;: &quot;/Game/Models/Characters_HD/Hero_HD/M_Dragon_HD/M_Dragon_008_HD/M_Dragon_008_Upper_1P_HD.*&quot; },
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::Lower&quot;,
+        &quot;MeshPath&quot;: &quot;/Game/Models/Characters_HD/.../M_Dragon_008_Body_3P_HD.*&quot;,
+        &quot;AnimInstance&quot;: &quot;.../ABP_LowerBodyFor1P_3P.*&quot; }
+    ],
+    &quot;ExtraParts&quot;: []
+  },
+
+  &quot;TPP&quot;: {
+    &quot;IsUseMasterMesh&quot;: false,
+    &quot;CoreParts&quot;: [
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::Hair&quot;,   &quot;MeshPath&quot;: &quot;...M_Dragon_SOL_007_Hair_3P_HD.*&quot; },
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::HairAdaptive&quot;, &quot;MeshPath&quot;: &quot;...M_Dragon_SOL_007_Hair01_3P_HD.*&quot; },
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::Upper&quot;,  &quot;MeshPath&quot;: &quot;...M_Dragon_SOL_007_Body_3P_HD.*&quot; }
+    ],
+    &quot;ExtraParts&quot;: [
+      { &quot;ExtraTag&quot;: &quot;ECharacterAvatarExtraTag::SkillItem&quot;,
+        &quot;AvatarItemName&quot;: &quot;SkillMesh&quot;,
+        &quot;MeshPath&quot;: &quot;...Assault_C302_JetSystem_3P.*&quot; }
+    ]
+  },
+
+  &quot;UI&quot;: {
+    &quot;IsUseMasterMesh&quot;: true,
+    &quot;MasterMesh&quot;: &quot;/Game/Models/Characters/Master/Master_Man_UI.*&quot;,
+    &quot;CoreParts&quot;: [
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::Hair&quot;,   &quot;MeshPath&quot;: &quot;...M_Dragon_SOL_007_Hair_UI_HD.*&quot; },
+      { &quot;AvatarPart&quot;: &quot;ECharacterAvatarPartConfig::HairAdaptive&quot;, &quot;MeshPath&quot;: &quot;...M_Dragon_SOL_007_Hair01_UI_HD.*&quot; },
+      ...
+    ]
+  },
+
+  &quot;HairAttachSocket&quot;: &quot;Head_Joint&quot;,
+  &quot;BodyShapeShiftType&quot;: &quot;EHeroShapeShiftType::Zero&quot;
+}</code></pre><h2>4. 모듈러 조립 방식</h2><h3>4-1. 파츠 합체 방법</h3><p>실제 JSON 증거에서 확인된 패턴:</p><p><b>TPP/FPP 인게임</b>: <code>IsUseMasterMesh: false</code> → 각 파츠 SkeletalMesh가 공유 스켈레톤 <code>C_Test_001_3P_Skeleton</code>에 바인딩.</p><ul><li>모든 3P HD 메시가 동일 스켈레톤 참조 확인 (M_Dragon, F_Hack 등)</li><li>파츠 간 포즈 동기화는 공유 스켈레톤 기반 (추정: Leader/Master Pose Component)</li></ul><p><b>UI 뷰 (캐릭터 선택창 등)</b>: 일부 영웅에서 <code>IsUseMasterMesh: true</code> + <code>MasterMesh</code>에 <code>Master_Man_UI</code> 또는 <code>Master_Female_UI</code> 지정.</p><ul><li><code>Master/</code> 폴더 내 마스터 메시 종류: <code>Master_1P</code>, <code>Master_Man_3P</code>, <code>Master_Man_UI</code>, <code>Master_Female_UI</code>, <code>Master_Female_LongLeg_UI</code>, <code>Master_Female_LongLeg_ShortShoulder_UI</code></li><li>여성 체형별로 LongLeg, ShortShoulder 변형 존재 (F_Hack 계열 = 기본 Female, F_Luna/F_Zoya 등은 추정 LongLeg)</li></ul><h3>4-2. 세트 단위 vs 부위 단위</h3><ul><li><code>CharacterAvatarData</code>의 행 키는 HeroID (영웅+스킨 조합 단위)</li><li>하나의 행에 FPP/TPP/UI 전 파츠가 모두 선언 → <b>영웅 스킨 세트 단위 조립</b></li><li>런타임에서 FashionID 교체 시 해당 영웅의 CharacterAvatarData 행 전체가 교체되는 구조 (추정)</li><li>부위 단위 단독 교체 경로는 이 DataTable에서는 미확인</li></ul><h3>4-3. FaceAnimMasterMesh</h3><ul><li><code>IsUseFaceAnimMasterMesh: true</code> + <code>FaceAnimMasterMesh</code> 경로가 있는 경우 페이스 애니메이션 전용 마스터 메시 별도 사용</li><li><code>Hero_Face/</code> 폴더: <code>Face_UI_Master_Skeleton</code>, <code>Faces_Master_Skeleton</code>, <code>ABP_Hero_Face_UI</code>, <code>ABP_Hero_M_Face_UI</code>, <code>ABP_Hero_F_Face_UI</code> (성별 구분 ABP 존재)</li></ul><h2>5. HeroFashionData 스킨·배리언트 구조</h2><pre class="cb"><code>&quot;30000050002&quot;: {
+  &quot;FashionID&quot;: &quot;30000050002&quot;,
+  &quot;WearPosition&quot;: 0,               // 착용 슬롯 (0=전신 세트)
+  &quot;BelongedHeroID&quot;: 88000000025,  // 귀속 영웅 (M_Dragon)
+  &quot;IsDefUnlock&quot;: false,           // 기본 잠금 (획득 필요)
+  &quot;IsDefEquip&quot;: false,
+  &quot;Class&quot;: 5,                     // 등급 (2=기본, 4=??, 5=프리미엄 추정)
+  &quot;HeroItemIDs&quot;: [&quot;38110050001&quot;, &quot;38110050002&quot;],  // 번들 추가 아이템
+  &quot;Icon&quot;: &quot;/Game/UI/UIAtlas/Texture/Skin/Skin_Wang_IronGrim.*&quot;,
+  &quot;BundleIcons&quot;: [...],
+  &quot;DisplayType&quot;: 3                // 표시 타입 (2=일반, 3=번들)
+}</code></pre><ul><li><code>Class: 2 / IsDefUnlock: true</code> = 기본 스킨 (모든 영웅 1개 보유)</li><li><code>Class: 4</code> = 특수 스킨 (SOL 시즌 계열 추정)</li><li><code>Class: 5</code> = 프리미엄 번들 스킨 (HeroItemIDs 포함)</li><li>FashionID 패턴: <code>30000020XXX</code> = 기본, <code>30000040XXX</code> = 특수, <code>30000050XXX</code> = 프리미엄</li></ul><h2>6. 메시 파일 네이밍 규칙</h2><p>실제 확인된 메시 파일 패턴:</p><table><tr><th>패턴</th><th>예시</th><th>뷰</th></tr><tr><td><code>{Hero}_{Skin}_Body_3P</code></td><td><code>M_Dragon_008_Body_3P</code></td><td>TPP 인게임(전신 통합)</td></tr><tr><td><code>{Hero}_{Skin}_Upper_1P</code></td><td><code>M_Roy_016_Upper_1P</code></td><td>FPP 팔 메시</td></tr><tr><td><code>{Hero}_{Skin}_Lower_3P</code></td><td><code>M_Dragon_008_Lower_3P</code></td><td>TPP 하의 별도</td></tr><tr><td><code>{Hero}_{Skin}_Body_UI</code></td><td><code>M_Kai_002_Body_UI</code></td><td>UI 전신 메시</td></tr><tr><td><code>{Hero}_{Skin}_Face_UI</code></td><td><code>M_Roy_016_Face_UI</code></td><td>UI 얼굴 메시</td></tr><tr><td><code>{Hero}_{Skin}_Hair_3P</code></td><td><code>M_Dragon_SOL_007_Hair_3P_HD</code></td><td>TPP 헤어</td></tr><tr><td><code>{Hero}_{Skin}_Hair01_3P</code></td><td><code>M_Dragon_SOL_007_Hair01_3P_HD</code></td><td>TPP 헤어 보조(HairAdaptive)</td></tr><tr><td><code>{Hero}_{Skin}_Body_3P_Merged</code></td><td><code>M_Dragon_008_Body_3P_Merged</code></td><td>전신 병합 메시 (일부)</td></tr><tr><td><code>{Weapon}_{Hero}</code></td><td><code>M_Roy_016_AKM</code>, <code>Glock18_Daniel</code></td><td>영웅 전용 무기 외형</td></tr></table><p>HD 버전은 <code>_HD</code> 접미사 추가, <code>Models/Characters_HD/Hero_HD/</code> 경로 사용.</p><h2>7. 영웅별 폴더 목록</h2><h3>Models/Characters/Hero/</h3><pre class="cb"><code>F_C103, F_Claire, F_Hack, F_Luna, F_Operator, F_Zoya
+M_BlackHawkDown, M_C501, M_David, M_Dragon, M_Elio, M_Flamethrower
+M_Kai, M_Landon_20, M_Operator, M_Rashid_v5, M_Rocketeer, M_Roy, M_Sineva, M_Terry
++ Hero_Face (공유 페이스 스켈레톤/ABP)
++ CommercialPerformance, HallCutScene_Template</code></pre><h3>Models/Characters_HD/Hero_HD/ (HD 품질)</h3><pre class="cb"><code>F_C103_HD, F_Claire_HD, F_Hack_HD, F_Luna_HD, F_Zoya_HD
+M_BlackHawkDown_HD, M_David_HD, M_Dragon_HD, M_Kai_HD
+M_Landon_20_HD, M_Rashid_v5_HD, M_Roy_HD, M_Sineva_HD, M_Terry_HD</code></pre><p>(14개 영웅 HD 확인, M_Elio / M_Flamethrower / M_Rocketeer / M_C501 / Operator 계열 HD 미확인)</p><h3>스킨 서브폴더 예시 (F_Hack)</h3><pre class="cb"><code>F_Hack/
+  F_Hack_011/         &lt;- 기본 스킨
+  F_Hack_SOL_010/     &lt;- SOL 시즌 스킨
+  F_Hack_ink_S_012/   &lt;- 프리미엄 스킨 (Cat 특수 ABP 포함)
+  F_Hack_AN252G_xl_S/ &lt;- 컬래버 스킨</code></pre><h2>8. 핵심 경로 목록</h2><pre class="cb"><code># 조립 정의 DataTable
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\08_Characters\CharacterAvatarData.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\PC\DataTables\CharacterAvatarData.json
+
+# 스킨 세트 DataTable
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\08_Characters\HeroFashionData.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\08_Characters\HeroData.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\08_Characters\HeroItemData.json
+
+# 착용 우선순위 DataTable
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\08_Characters\CharacterAppearanceAdaptationData.json
+
+# 스킬 아이템 메시 DataTable
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\PC\DataTables\CharacterSkillItemMeshData.json
+
+# 공유 마스터 스켈레톤 (3P)
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters\C_Test_001\
+  └ C_Test_001_3P_Skeleton.uasset
+
+# 공유 마스터 메시 (UI)
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters\Master\
+  └ Master_Man_UI.uasset
+  └ Master_Man_3P.uasset
+  └ Master_Female_UI.uasset
+  └ Master_Female_LongLeg_UI.uasset
+  └ Master_Female_LongLeg_ShortShoulder_UI.uasset
+  └ Master_1P.uasset
+
+# 공유 페이스 스켈레톤/ABP
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters\Hero\Hero_Face\
+  └ Faces_Master_Skeleton.uasset
+  └ Face_UI_Master_Skeleton.uasset
+  └ ABP_Hero_Face_UI.uasset
+  └ ABP_Hero_M_Face_UI.uasset
+  └ ABP_Hero_F_Face_UI.uasset
+
+# 영웅 메시 루트 (일반)
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters\Hero\{Hero}\{Hero}_{Skin}\
+
+# 영웅 메시 루트 (HD)
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters_HD\Hero_HD\{Hero}_HD\{Hero}_{Skin}_HD\
+
+# 대표 샘플 (M_Dragon 기본 스킨, JSON export 있음)
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters\Hero\M_Dragon\M_Dragon_008\M_Dragon_008_Body_3P.json
+D:\FModel\Output\Exports\DeltaForce\Content\Models\Characters_HD\Hero_HD\M_Dragon_HD\M_Dragon_008_HD\M_Dragon_008_Body_3P_HD.json</code></pre><h2>9. 불확실 항목</h2><table><tr><th>항목</th><th>상태</th><th>근거</th></tr><tr><td>Leader Pose vs Master Pose 조립 방식</td><td>추정(LeaderPose)</td><td>BP(.uasset)이 바이너리라 실제 컴포넌트 구조 미확인. UE5 표준상 CharacterAvatarData IsUseMasterMesh=true → Master Pose Component 유력</td></tr><tr><td>WearPosition 슬롯과 AvatarPart 슬롯의 런타임 매핑</td><td>미확인</td><td>CharacterAppearanceAdaptationData가 두 슬롯 우선순위 모두 가지나, 런타임에서 어떻게 교차 적용되는지 BP 없이 불명</td></tr><tr><td>HairAdaptive의 정확한 트리거 조건</td><td>추정(헬멧 착용 시 Hair 교체)</td><td>필드명과 SOL 스킨에만 존재하는 패턴에서 추론</td></tr><tr><td>Female 마스터 메시 분기 기준</td><td>추정(체형 코드)</td><td>LongLeg/ShortShoulder 이름에서 추론. 어느 영웅이 어느 마스터 사용하는지 AvatarData에서 직접 확인 미완</td></tr><tr><td>BodyShapeShiftType 필드 의미</td><td>미확인</td><td>모든 확인 샘플이 <code>EHeroShapeShiftType::Zero</code>로 관찰됨. 변형 체형 전환 예약 필드 추정</td></tr><tr><td>CharacterProfiles FashionList 항목 ID 범위</td><td>미확인</td><td>18000000XXX 형식이 HeroFashionData의 3000XXXXX와 다름. NPC/AI 전용 별도 패션 ID 범위 가능성</td></tr><tr><td>HeroFashionData Class 4 등급 의미</td><td>추정(SOL 시즌권)</td><td>기본(2)/프리미엄(5) 사이에 위치하고 IsDefUnlock=false인 점에서 추론</td></tr><tr><td>M_Elio / M_Flamethrower / M_Rocketeer HD 존재 여부</td><td>미확인</td><td>Characters_HD 폴더에서 미발견. FModel 미추출 or HD 없음</td></tr></table></div>
+</body></html>

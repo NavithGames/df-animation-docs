@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF — Item &amp; Inventory Structure</title>
+<style>
+  :root { --bg:#15171c; --panel:#1e2128; --border:#2e333d; --fg:#e3e6eb; --muted:#9aa3b2; --accent:#5aa9ff; --accent2:#7ee787; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:19px; }
+  header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+  header .nav { margin-top:9px; display:flex; gap:8px; flex-wrap:wrap; }
+  header .nav a { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); border-radius:6px; padding:3px 9px; background:#22262e; }
+  header .nav a.cur { color:#fff; background:#2f6bd6; border-color:#2f6bd6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:15px; margin:22px 0 8px; color:var(--accent2); }
+  h4 { font-size:13.5px; margin:16px 0 6px; color:#cdd3dc; }
+  .note { background:#22262e; border-left:3px solid var(--accent); padding:10px 14px; border-radius:6px; font-size:13.5px; color:var(--muted); margin:10px 0; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12.7px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#262b34; color:var(--accent2); }
+  tr:nth-child(even) td { background:#1b1e24; }
+  code { background:#2a2f38; padding:1px 5px; border-radius:4px; font-size:12px; color:#ffd9a0; }
+  pre.cb { background:#191c22; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; font-size:12px; color:#cdd3dc; margin:12px 0; line-height:1.45; }
+  pre.cb code { background:none; padding:0; color:inherit; font-size:12px; }
+  ul,ol { margin:8px 0; padding-left:22px; }
+  li { margin:4px 0; font-size:13.5px; }
+  a { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 6px; color:#fff; }
+  .card p { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .card a.open { display:inline-block; background:#2f6bd6; color:#fff; text-decoration:none; padding:6px 12px; border-radius:7px; font-size:13px; }
+  .card .st { font-size:11.5px; color:var(--accent2); }
+</style></head><body>
+<header><h1>DF — Item &amp; Inventory Structure</h1><p>DF (UE5.3) extract research for WR2 item/inventory & customization rebuild · researched by Wjna_Jr · 2026-06-25</p><div class="nav"><a class="" href="item_index.html">Overview</a><a class="cur" href="item_inventory.html">Item & Inventory</a><a class="" href="item_weapon_parts.html">Weapon Parts</a><a class="" href="item_character_parts.html">Character Parts</a><a class="" href="item_vehicle_parts.html">Vehicle Parts</a><a class="" href="ai_index.html">← AI Guides</a></div></header>
+<div class="wrap"><p>조사일: 2026-06-25<br>추출물 루트: <code>D:\FModel\Output\Exports\DeltaForce\Content</code></p><h2>발견 요약</h2><ul><li>아이템 정의는 단일 대형 ItemDefinition 테이블이 아닌, <b>아이템 ID 앞자리 prefix 체계</b>로 카테고리/인벤토리 매핑을 구분하는 구조다.</li><li>핵심 인벤토리 매핑 테이블 <code>GameItemToInventory</code>(RowStruct: <code>DFMItemToInventoryRuleRow</code>)가 존재하며, ID prefix → 인벤토리 슬롯 번호를 결정한다.</li><li>플레이어 장비 프리셋은 <code>EquipmentPresetDataConfig</code>가 Position 코드(슬롯 번호)별 ItemId+수량을 정의하며, 이것이 사실상 인벤토리 레이아웃이다.</li><li>Extraction 모드(SOL)에 특화된 아이템 드롭 테이블(<code>LootBoxChosenList</code>, <code>LootPointChosenList</code>, <code>DropConfigTable</code>)이 분리되어 있다.</li><li>인벤토리 컨테이너 BP 최상위 클래스는 <code>InventoryPickup_DeadBodyWithSpecialEffect</code>(C++ 네이티브, <code>/Script/DFMGameplay</code>)이며, BP는 해당 클래스를 상속한다. 그리드/슬롯 사이즈·무게 등 세부 스펙은 C++ 코드 측에 있어 추출물 JSON에서 직접 확인 불가다.</li></ul><h2>1. 아이템 정의 위치 및 구조</h2><h3>1-1. 핵심 데이터 테이블 (JSON 추출 확인)</h3><table><tr><th>테이블 명</th><th>RowStruct</th><th>위치(GameData)</th><th>위치(R13N 미러)</th></tr><tr><td>GameItemToInventory</td><td>DFMItemToInventoryRuleRow</td><td><code>GameData/14_Items/GameItemToInventory.json</code></td><td><code>R13N/Common/Base/DataTables/GameItemToInventory.json</code></td></tr><tr><td>ItemsClusterTable</td><td>ItemsClusterRow</td><td><code>GameData/14_Items/ItemsClusterTable.json</code></td><td><code>R13N/Common/Base/DataTables/ItemsClusterTable.json</code></td></tr><tr><td>GameItemNamePrefix</td><td>ItemNamePrefix</td><td><code>GameData/14_Items/GameItemNamePrefix.json</code></td><td>-</td></tr><tr><td>ItemSpeicalTypeTable</td><td>ItemSpeicalTypeData</td><td><code>GameData/14_Items/ItemSpeicalTypeTable.json</code></td><td>-</td></tr><tr><td>ItemTagFilterMap</td><td>ItemTagFilterMap</td><td><code>GameData/14_Items/ItemTagFilterMap.json</code></td><td>-</td></tr><tr><td>FestivalItemConfigTable</td><td>FestivalItemConfigRow</td><td><code>GameData/14_Items/FestivalItemConfigTable.json</code></td><td>-</td></tr><tr><td>FalloutInventoryItemTable</td><td>FalloutInventoryItemRow</td><td><code>GameData/12_Extraction/FalloutInventoryItemTable.json</code></td><td><code>R13N/Common/Base/DataTables/Interact/FalloutInventoryItemTable.json</code></td></tr><tr><td>EquipmentPresetDataConfig</td><td>EquipmentPresetDataInfo</td><td><code>GameData/09_ArmedForce/EquipmentPresetDataConfig.json</code></td><td><code>R13N/Common/Base/DataTables/EquipmentPresetDataConfig.json</code></td></tr><tr><td>DestructibleItemDataConfig</td><td>DestructibleItemDataRow</td><td><code>GameData/14_Items/DestructibleItemDataConfig.json</code></td><td>-</td></tr></table><h3>1-2. 아이템 ID 체계 (GameItemToInventory 기반 역추론)</h3><p>아이템 ID는 <b>11자리 숫자</b> 또는 앞자리 prefix 형태.<br>prefix 앞 2자리(MainType)가 카테고리를 결정한다.</p><pre class="cb"><code>[MainType 2자리][SubType 2자리][일련번호 7자리]
+예) 10010001471 → MainType=10(주무기), SubType=01, 개별ID=0001471
+    11010001003 → MainType=11(헬멧 계열)
+    14020000002 → MainType=14(소모품/의료)
+    37120100001 → MainType=37(탄약)</code></pre><p><b>GameItemToInventory prefix → Inventory 번호 매핑 (전체 30개 행)</b></p><table><tr><th>IDPrefix</th><th>Inventory 번호</th><th>추정 카테고리</th></tr><tr><td>10, 11, 13, 14, 15, 16, 18, 19, 20, 37</td><td>1</td><td>메인 인벤토리 (무기/방어구/탄약/소모품)</td></tr><tr><td>17020000010</td><td>1</td><td>특정 아이템 고정</td></tr><tr><td>17</td><td>4</td><td>별도 슬롯(추정: 수류탄/투척류)</td></tr><tr><td>28, 29, 32, 33, 34</td><td>3</td><td>별도 슬롯(추정: 특수장비)</td></tr><tr><td>21, 24, 25, 30, 88</td><td>5</td><td>별도 슬롯(추정: 스킨/코스메틱)</td></tr><tr><td>35</td><td>7</td><td>별도 슬롯</td></tr><tr><td>12, 22, 99</td><td>99</td><td>비인벤토리/특수(추정: 월드 오브젝트)</td></tr><tr><td>26010000001</td><td>11</td><td>특정 아이템</td></tr><tr><td>26010000002</td><td>10</td><td>특정 아이템</td></tr><tr><td>2602</td><td>12</td><td>특정 아이템</td></tr><tr><td>26010000003</td><td>13</td><td>특정 아이템</td></tr></table><h3>1-3. 아이템 속성 필드 (발견된 RowStruct별)</h3><p><b>FalloutInventoryItemRow (SOL 모드 인벤토리 아이템)</b></p><pre class="cb"><code>{
+  &quot;UniqueId&quot;: 3,
+  &quot;ItemID&quot;: 14020000006,
+  &quot;ItemName&quot;: &quot;医療箱&quot;,    // 중문: 의료 상자
+  &quot;FalloutValue&quot;: 40,      // 아이템 가치 (드랍시 적용 버프/점수)
+  &quot;FalloutBuff&quot;: 300503    // 연결된 버프 ID
+}</code></pre><p><b>EquipmentPresetDataInfo (장비 프리셋 슬롯 정의)</b></p><pre class="cb"><code>{
+  &quot;Key&quot;: 1,
+  &quot;TypeID&quot;: 1,          // 병과 타입 (1~N)
+  &quot;PresetID&quot;: 1,        // 프리셋 번호
+  &quot;PresetTitle&quot;: null,
+  &quot;Position&quot;: 111,      // 슬롯 코드 (아래 표 참조)
+  &quot;ItemId&quot;: 10010001471,
+  &quot;ItemNum&quot;: 1,         // 스택/수량
+  &quot;ConsumableID&quot;: 32330000001,  // 소모 화폐 ID
+  &quot;RefreshPrice&quot;: 2000  // 갱신 가격
+}</code></pre><p><b>ItemSpeicalTypeData (특수 속성 태그)</b></p><pre class="cb"><code>{
+  &quot;ItemID&quot;: 11010005010,
+  &quot;NightVision&quot;: true,
+  &quot;ThermalImagine&quot;: false,
+  &quot;Flashlight&quot;: false
+}</code></pre><p><b>ItemsClusterRow (아이템 그룹/풀 정의)</b></p><pre class="cb"><code>{
+  &quot;ClusterID&quot;: 100002,
+  &quot;ItemIdArray&quot;: [&quot;15060040001&quot;, &quot;15080050090&quot;, ...]  // 19개 아이템 ID 배열
+}</code></pre><h3>1-4. 아이템 태그/필터 체계 (ItemTagFilterMap)</h3><p>계층형 태그 구조. MainTag(bIsMainTag=1) + 하위 SubTag(bIsMainTag=0, ParentTagID 참조).</p><pre class="cb"><code>MainTag 0~16 (16개 최상위 카테고리)
+  └ SubTag: 101~108 (ParentTagID=1)
+  └ SubTag: 201~204 (ParentTagID=2)
+  └ SubTag: 301~307, 315 (ParentTagID=3)
+  └ SubTag: 401~409 (ParentTagID=4)
+  └ SubTag: 501~529 (ParentTagID=5, 가장 많음)
+  └ SubTag: 601 (ParentTagID=6)
+  └ SubTag: 701~702 (ParentTagID=7)
+  └ SubTag: 801~803 (ParentTagID=8)
+  └ SubTag: 1601~1610, 1621, 1631 (ParentTagID=16)</code></pre><p>총 91개 태그. Desc 필드는 대부분 null (로컬라이제이션 미포함).</p><h2>2. 인벤토리 구조 및 적재 방식</h2><h3>2-1. 장비 슬롯 코드 (Position) 체계</h3><p><code>EquipmentPresetDataConfig</code> CSV에서 확인된 Position 값:</p><table><tr><th>Position 코드</th><th>추정 슬롯</th></tr><tr><td>111</td><td>주무기 1번 슬롯</td></tr><tr><td>101</td><td>헬멧 슬롯</td></tr><tr><td>105</td><td>방탄조끼 슬롯</td></tr><tr><td>107</td><td>배낭/가방 슬롯</td></tr><tr><td>108</td><td>기어/장비 슬롯</td></tr><tr><td>107001</td><td>배낭 내부 아이템 슬롯 (소모품, 의료, 탄약)</td></tr><tr><td>199997</td><td>탄약 예비 슬롯 (대량 스택, 최대 240발)</td></tr></table><p>슬롯 코드 패턴: 100번대 = 장비 부위, 107001 = 배낭 내부, 199997 = 예비 탄약.</p><h3>2-2. 인벤토리 적재 방식</h3><p><b>SOL(Extraction) 모드:</b></p><ul><li>아이템을 월드에서 루팅 → <code>InventoryPickup_DeadBodyWithSpecialEffect</code> (C++ 네이티브 클래스) 기반 BP가 처리</li><li>BP 파생: <code>BP_Inventory_DeadBody_Fake</code>, <code>BP_Inventory_JailBreakDeadBody</code> 등</li><li>루팅 인터랙션 태그: <code>Interactor.Pickup.DeadBody</code>, <code>Interactor.Pickup.DeadBody.StartLoot</code></li><li>아이템 배열은 <code>RepItemArray</code>(복제 배열) 구조 → 서버 동기화 방식</li></ul><p><b>드롭 방식 (DropConfigTable):</b></p><table><tr><th>ItemType enum</th><th>DropSource</th><th>Cfg1 예시</th><th>비고</th></tr><tr><td>EDropItemType::DropHelmet</td><td>LootPoint</td><td>(30,1),(50,1),(80,1)</td><td>확률,수량 페어</td></tr><tr><td>EDropItemType::DropArmor</td><td>LootPoint</td><td>(30,1),(50,1),(80,1)</td><td>-</td></tr><tr><td>EDropItemType::DropWeapon</td><td>LootPoint</td><td>(100,1)</td><td>100% 드롭</td></tr><tr><td>EDropItemType::DropConsume</td><td>LootPoint</td><td>(100,1)</td><td>소모품</td></tr></table><p>Cfg 형식: <code>(확률%, 수량)</code> 페어 복수 지정 가능. 단계별 드롭 확률표.</p><p><b>배틀필드(MP) 모드:</b></p><ul><li><code>EquipmentPresetDataConfig</code> 기반 사전 장비 구성 → 매치 시작 시 로드</li><li>Position 슬롯 코드 + ItemId + ItemNum 조합으로 정적 장비 세트 구성</li><li>인게임 탄약 구매/갱신: <code>ConsumableID</code>(화폐) + <code>RefreshPrice</code></li></ul><p><b>LootStyle (MatchLootStyle):</b><br>AI 루팅 스타일 6종 확인 (중문 원문):</p><ol><li>跑刀仔 (칼질 러너)</li><li>全装大佬 (풀장비 베테랑)</li><li>好战 (호전적)</li><li>保守loot (보수적 루팅)</li><li>合约风格 (계약 스타일)</li><li>随机应变 (랜덤 대응)</li></ol><h3>2-3. 그리드/슬롯 사이즈 (width×height)</h3><p><b>추출물 JSON에서 직접 확인 불가.</b> 그리드 사이즈 필드(width/height/slots)는 C++ 네이티브 클래스 <code>DFMGameplay</code> 내부에 있으며, FModel JSON export 대상이 아니다.<br>→ 슬롯 기반(Position 코드) 방식임은 확인됨. Tarkov식 그리드 vs 단순 슬롯 여부는 추정 불가.</p><h3>2-4. 고가치 루트박스 설정 (HighValueLootBoxProp)</h3><pre class="cb"><code>{
+  &quot;UniqueID&quot;: 1,
+  &quot;MatchModeID&quot;: 141901103,
+  &quot;MapBoxConfig&quot;: 0,
+  &quot;BoxId&quot;: &quot;934;952;938;930;946&quot;,   // 세미콜론 구분 다중 박스 ID
+  &quot;HighValueProportion&quot;: 0.3        // 고가치 아이템 30% 비율
+}</code></pre><h2>3. 핵심 에셋 경로 목록</h2><h3>DataTable JSON (직접 파싱 가능)</h3><pre class="cb"><code>D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\GameItemToInventory.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\ItemsClusterTable.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\GameItemNamePrefix.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\ItemSpeicalTypeTable.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\ItemTagFilterMap.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\FestivalItemConfigTable.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\14_Items\DestructibleItemDataConfig.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\FalloutInventoryItemTable.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\LootBoxChosenList.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\LootPointChosenList.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\MatchLootStyle.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\DropConfigTable__DataTables.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\12_Extraction\HighValueLootBoxProp.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\09_ArmedForce\EquipmentPresetDataConfig.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\09_ArmedForce\ArmedForcePropList.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\09_ArmedForce\ArmedForceData.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\09_ArmedForce\CompleteEquipmentCheckConfig.json
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\09_ArmedForce\InGameEquipmentRentalConfig.json</code></pre><h3>CSV 미러 (동일 데이터)</h3><pre class="cb"><code>D:\FModel\Output\Exports\DeltaForce\Content\GameData\CSV\GameItemToInventory.csv
+D:\FModel\Output\Exports\DeltaForce\Content\GameData\CSV\EquipmentPresetDataConfig.csv</code></pre><h3>인벤토리 BP (JSON 추출)</h3><pre class="cb"><code>D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_DeadBody_Fake.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_JailBreakDeadBody.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_JailBreakDeadBody_Box.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_JailBreakDeadBody_Cloth.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_JailBreakDeadBody_Wardrobe.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_DeadBody_Fake_Crocodile.json
+D:\FModel\Output\Exports\DeltaForce\Content\BluePrints\Characters\AI\Boss\Maurice\BP_Inventory_DeadBody_Fake_Shark.json</code></pre><h3>R13N 미러 경로</h3><pre class="cb"><code>D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\GameItemToInventory.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\ItemsClusterTable.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\ItemTagFilterMap.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\LootBoxChosenList.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\LootPointChosenList.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\MatchLootStyle.json
+D:\FModel\Output\Exports\DeltaForce\Content\R13N\Common\Base\DataTables\HighValueLootBoxProp.json</code></pre><h2>4. 불확실/추정 항목</h2><table><tr><th>항목</th><th>상태</th><th>근거</th></tr><tr><td>Inventory 번호(1,3,4,5,7,10~13,99)의 실제 의미</td><td>추정</td><td>GameItemToInventory InventoryName 필드가 전부 null. 번호 자체만 확인됨</td></tr><tr><td>슬롯 그리드 사이즈 (width×height)</td><td>확인 불가</td><td>C++ 네이티브 클래스(<code>/Script/DFMGameplay</code>) 내부 필드로 JSON export 범위 밖</td></tr><tr><td>아이템 등급(Rarity) 필드</td><td>추정</td><td>오디오에 Level1_White/Level2_Green/Level3_Blue/Level4_Purple/Gold 5단계 확인. 단 DataTable JSON에 &quot;Rarity&quot; 필드명 직접 발견 없음</td></tr><tr><td>ItemTagFilterMap Desc 필드 의미</td><td>확인 불가</td><td>모든 행의 Desc가 null (로컬라이제이션 스트링 미추출)</td></tr><tr><td>Position 코드 체계 전체 (107, 108 등)</td><td>추정</td><td>CSV 패턴과 EquipmentCheckTypeConfig SubType 번호 비교로 추론. 코드 주석 없음</td></tr><tr><td>아이템 아이콘/메시 참조 경로</td><td>확인 불가</td><td>아이템 정의 테이블에 AssetPath 필드 미포함. UI Atlas 별도 파일에 분산 추정</td></tr><tr><td>Fallout/SOL FalloutInventoryItemTable 3개 행</td><td>확인됨, 불완전</td><td>추출된 행이 3개뿐. 실제 SOL 아이템 전체 목록은 별도 에셋에 있을 가능성</td></tr><tr><td>InGameMallConfig (인게임 상점)</td><td>미조사</td><td><code>GameData/12_Extraction/InGameMallConfig__DataTables.json</code> 존재. 추가 조사 필요</td></tr></table><p><i>조사완료</i></p></div>
+</body></html>
